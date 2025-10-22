@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stockfish Analyzer - API 测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .error {
+            border-left-color: #f44336;
+            background-color: #ffebee;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏰 Stockfish Analyzer API 测试</h1>
+
+        <h2>1. 上传 PGN 文件</h2>
+        <label>PGN 内容：</label>
+        <textarea id="pgnContent">[Event "Test Game"]
+[Site "Online"]
+[Date "2024.01.01"]
+[White "Player1"]
+[Black "Player2"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. b4 Bxb4 5. c3 Ba5 6. d4 exd4 7. O-O d3 1-0</textarea>
+
+        <button onclick="uploadPgn()">上传 PGN</button>
+
+        <h2>2. 查看棋局列表</h2>
+        <button onclick="getGames()">获取棋局列表</button>
+
+        <h2>3. 查看分析结果</h2>
+        <label>棋局 ID：</label>
+        <input type="number" id="gameId" value="1" style="padding: 5px; width: 100px;">
+        <button onclick="getAnalysis()">获取分析结果</button>
+
+        <div id="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/pgn';
+
+        function showResult(data, isError = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = isError ? 'result error' : 'result';
+            resultDiv.textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function uploadPgn() {
+            const pgnContent = document.getElementById('pgnContent').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/upload?userId=1`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                    body: pgnContent
+                });
+
+                const data = await response.json();
+                showResult(data, !response.ok);
+            } catch (error) {
+                showResult({ error: error.message }, true);
+            }
+        }
+
+        async function getGames() {
+            try {
+                const response = await fetch(`${API_BASE}/games?userId=1`);
+                const data = await response.json();
+                showResult(data, !response.ok);
+            } catch (error) {
+                showResult({ error: error.message }, true);
+            }
+        }
+
+        async function getAnalysis() {
+            const gameId = document.getElementById('gameId').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/analysis/${gameId}`);
+                const data = await response.json();
+                showResult(data, !response.ok);
+            } catch (error) {
+                showResult({ error: error.message }, true);
+            }
+        }
+    </script>
+</body>
+</html>
