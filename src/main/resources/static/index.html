@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stockfish 国际象棋分析器</title>
+
+    <!-- Chessboard.js CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <!-- Chess.js (国际象棋逻辑) -->
+    <script src="https://unpkg.com/chess.js@0.13.4/chess.js"></script>
+
+    <!-- Chessboard.js -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 500px 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .left-panel, .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .panel h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #board {
+            width: 500px;
+            margin: 0 auto;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f0f0;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8e8ff;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-family: monospace;
+            resize: vertical;
+            font-size: 0.9em;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .game-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .game-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .game-item:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .game-item.active {
+            border-color: #764ba2;
+            background: #f0f0ff;
+        }
+
+        .game-item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .game-item-info {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .move-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .move-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .move-item:hover {
+            border-color: #667eea;
+        }
+
+        .move-item.active {
+            border-color: #764ba2;
+            background: #f0f0ff;
+        }
+
+        .move-classification {
+            font-size: 1.5em;
+        }
+
+        .move-score {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        #evaluation-chart {
+            width: 100%;
+            height: 300px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .controls button {
+            padding: 10px 20px;
+            flex: 1;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .status-completed {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status-failed {
+            background: #f44336;
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .best-move-hint {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 5px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <div class="header">
+                <h1>🏰 Stockfish 国际象棋分析器</h1>
+                <p>基于开源 AI 引擎的专业复盘系统 | Project Zeus</p>
+            </div>
+
+            <div class="main-content">
+                <!-- 左侧面板 -->
+                <div class="left-panel">
+                    <!-- 上传 PGN -->
+                    <div class="panel">
+                        <h2>📤 上传 PGN 棋谱</h2>
+                        <div class="upload-area" @dragover.prevent @drop.prevent="handleDrop">
+                            <p>拖放 PGN 文件到这里，或者</p>
+                            <input type="file" id="fileInput" accept=".pgn" @change="handleFileSelect" style="display: none;">
+                            <button onclick="document.getElementById('fileInput').click()" style="margin-top: 10px;">
+                                选择文件
+                            </button>
+                        </div>
+                        <p style="text-align: center; margin: 15px 0;">或者直接粘贴 PGN 内容：</p>
+                        <textarea v-model="pgnInput" placeholder="粘贴 PGN 内容..."></textarea>
+                        <button @click="uploadPgn" :disabled="!pgnInput || uploading" style="width: 100%; margin-top: 10px;">
+                            {{ uploading ? '上传中...' : '上传并分析' }}
+                        </button>
+                    </div>
+
+                    <!-- 棋局列表 -->
+                    <div class="panel">
+                        <h2>📚 我的棋局</h2>
+                        <div v-if="loadingGames" class="loading">
+                            <div class="spinner"></div>
+                            <p>加载中...</p>
+                        </div>
+                        <div v-else class="game-list">
+                            <div v-for="game in games" :key="game.id"
+                                 class="game-item"
+                                 :class="{ active: selectedGame?.id === game.id }"
+                                 @click="selectGame(game)">
+                                <div class="game-item-header">
+                                    <span>{{ game.whiteName }} vs {{ game.blackName }}</span>
+                                    <span class="status-badge" :class="'status-' + game.analysisStatus.toLowerCase()">
+                                        {{ getStatusText(game.analysisStatus) }}
+                                    </span>
+                                </div>
+                                <div class="game-item-info">
+                                    {{ game.event }} | {{ game.gameDate }}
+                                </div>
+                            </div>
+                            <div v-if="games.length === 0" style="text-align: center; color: #999; padding: 20px;">
+                                还没有棋局，上传一个 PGN 文件开始吧！
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 中间棋盘 -->
+                <div>
+                    <div class="panel">
+                        <div id="board"></div>
+                        <div class="controls">
+                            <button @click="goToStart">⏮ 开始</button>
+                            <button @click="previousMove">◀ 上一步</button>
+                            <button @click="nextMove">下一步 ▶</button>
+                            <button @click="goToEnd">最后 ⏭</button>
+                        </div>
+                        <div v-if="currentAnalysis" class="best-move-hint">
+                            <strong>💡 最佳走法:</strong> {{ currentAnalysis.bestMove }}
+                            <br>
+                            <strong>📊 评分:</strong> {{ formatScore(currentAnalysis.score) }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧面板 -->
+                <div class="right-panel">
+                    <!-- 评估曲线 -->
+                    <div class="panel">
+                        <h2>📈 局势评估曲线</h2>
+                        <div id="evaluation-chart"></div>
+                    </div>
+
+                    <!-- 走法列表 -->
+                    <div class="panel">
+                        <h2>♟️ 走法分析</h2>
+                        <div v-if="loadingAnalysis" class="loading">
+                            <div class="spinner"></div>
+                            <p>分析中...</p>
+                        </div>
+                        <div v-else class="move-list">
+                            <div v-for="analysis in analysisResults" :key="analysis.moveNumber"
+                                 class="move-item"
+                                 :class="{ active: currentMoveNumber === analysis.moveNumber }"
+                                 @click="goToMove(analysis.moveNumber)">
+                                <div>
+                                    <strong>{{ analysis.moveNumber }}.</strong> {{ analysis.moveSan }}
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span class="move-score">{{ formatScore(analysis.score) }}</span>
+                                    <span class="move-classification">{{ getClassificationIcon(analysis.moveClassification) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    pgnInput: '',
+                    uploading: false,
+                    loadingGames: false,
+                    loadingAnalysis: false,
+                    games: [],
+                    selectedGame: null,
+                    analysisResults: [],
+                    currentMoveNumber: 0,
+                    board: null,
+                    chess: null,
+                    chart: null,
+                    API_BASE: '/api/pgn'
+                };
+            },
+            computed: {
+                currentAnalysis() {
+                    return this.analysisResults.find(a => a.moveNumber === this.currentMoveNumber);
+                }
+            },
+            mounted() {
+                this.initBoard();
+                this.initChart();
+                this.loadGames();
+            },
+            methods: {
+                initBoard() {
+                    this.chess = new Chess();
+                    this.board = Chessboard('board', {
+                        position: 'start',
+                        pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+                    });
+                },
+                initChart() {
+                    this.chart = echarts.init(document.getElementById('evaluation-chart'));
+                    this.updateChart([]);
+                },
+                async loadGames() {
+                    this.loadingGames = true;
+                    try {
+                        const response = await fetch(`${this.API_BASE}/games?userId=1`);
+                        this.games = await response.json();
+                    } catch (error) {
+                        console.error('加载棋局失败:', error);
+                        alert('加载棋局失败: ' + error.message);
+                    } finally {
+                        this.loadingGames = false;
+                    }
+                },
+                async uploadPgn() {
+                    if (!this.pgnInput.trim()) return;
+
+                    this.uploading = true;
+                    try {
+                        const response = await fetch(`${this.API_BASE}/upload?userId=1`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: this.pgnInput
+                        });
+
+                        const result = await response.json();
+                        alert(`上传成功！棋局 ID: ${result.gameId}\n状态: ${result.message}`);
+                        this.pgnInput = '';
+                        await this.loadGames();
+
+                        // 自动选择刚上传的棋局
+                        const newGame = this.games.find(g => g.id === result.gameId);
+                        if (newGame) {
+                            this.selectGame(newGame);
+                        }
+                    } catch (error) {
+                        console.error('上传失败:', error);
+                        alert('上传失败: ' + error.message);
+                    } finally {
+                        this.uploading = false;
+                    }
+                },
+                async selectGame(game) {
+                    this.selectedGame = game;
+                    this.currentMoveNumber = 0;
+                    this.chess.reset();
+                    this.board.position('start');
+
+                    await this.loadAnalysis(game.id);
+                },
+                async loadAnalysis(gameId) {
+                    this.loadingAnalysis = true;
+                    try {
+                        const response = await fetch(`${this.API_BASE}/analysis/${gameId}`);
+                        this.analysisResults = await response.json();
+                        this.updateChart(this.analysisResults);
+                    } catch (error) {
+                        console.error('加载分析失败:', error);
+                        this.analysisResults = [];
+                    } finally {
+                        this.loadingAnalysis = false;
+                    }
+                },
+                updateChart(data) {
+                    const option = {
+                        title: { text: '局势评估', left: 'center' },
+                        tooltip: { trigger: 'axis' },
+                        xAxis: {
+                            type: 'category',
+                            data: data.map(d => d.moveNumber)
+                        },
+                        yAxis: {
+                            type: 'value',
+                            name: '评分',
+                            axisLabel: { formatter: '{value}' }
+                        },
+                        series: [{
+                            data: data.map(d => d.score),
+                            type: 'line',
+                            smooth: true,
+                            lineStyle: { width: 3 },
+                            itemStyle: { color: '#667eea' }
+                        }]
+                    };
+                    this.chart.setOption(option);
+                },
+                goToMove(moveNumber) {
+                    if (!this.selectedGame) return;
+
+                    this.chess.reset();
+                    const moves = this.selectedGame.moves.split(' ');
+
+                    for (let i = 0; i < moveNumber && i < moves.length; i++) {
+                        this.chess.move(moves[i], { sloppy: true });
+                    }
+
+                    this.board.position(this.chess.fen());
+                    this.currentMoveNumber = moveNumber;
+                },
+                nextMove() {
+                    if (!this.selectedGame) return;
+                    const moves = this.selectedGame.moves.split(' ');
+                    if (this.currentMoveNumber < moves.length) {
+                        this.goToMove(this.currentMoveNumber + 1);
+                    }
+                },
+                previousMove() {
+                    if (this.currentMoveNumber > 0) {
+                        this.goToMove(this.currentMoveNumber - 1);
+                    }
+                },
+                goToStart() {
+                    this.goToMove(0);
+                },
+                goToEnd() {
+                    if (!this.selectedGame) return;
+                    const moves = this.selectedGame.moves.split(' ');
+                    this.goToMove(moves.length);
+                },
+                handleFileSelect(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.pgnInput = e.target.result;
+                        };
+                        reader.readAsText(file);
+                    }
+                },
+                handleDrop(event) {
+                    const file = event.dataTransfer.files[0];
+                    if (file && file.name.endsWith('.pgn')) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.pgnInput = e.target.result;
+                        };
+                        reader.readAsText(file);
+                    }
+                },
+                formatScore(score) {
+                    if (score === null || score === undefined) return 'N/A';
+                    return score > 0 ? `+${score.toFixed(2)}` : score.toFixed(2);
+                },
+                getClassificationIcon(classification) {
+                    const icons = {
+                        'BRILLIANT': '✨',
+                        'GREAT': '👍',
+                        'GOOD': '😊',
+                        'BOOK': '📖',
+                        'INACCURACY': '🤔',
+                        'MISTAKE': '😞',
+                        'BLUNDER': '😱',
+                        'MISSED_WIN': '💔'
+                    };
+                    return icons[classification] || '';
+                },
+                getStatusText(status) {
+                    const texts = {
+                        'PENDING': '等待中',
+                        'ANALYZING': '分析中',
+                        'COMPLETED': '已完成',
+                        'FAILED': '失败'
+                    };
+                    return texts[status] || status;
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
+
