@@ -43,11 +43,15 @@ public class GameAnalysisService {
         log.info("开始异步分析棋局 ID: {}, 总步数: {}", gameId, moves.size());
 
         try {
+            log.info("正在查询棋局 ID: {}", gameId);
             // 更新状态为"分析中"
             GamePgn game = gamePgnRepository.findById(gameId)
                     .orElseThrow(() -> new RuntimeException("棋局不存在: " + gameId));
+
+            log.info("查询到棋局，当前状态: {}", game.getAnalysisStatus());
             game.setAnalysisStatus(AnalysisStatus.PROCESSING);
             gamePgnRepository.save(game);
+            log.info("已更新状态为 PROCESSING");
 
             // 检查是否已有分析结果（缓存机制）
             if (analysisResultRepository.existsByGameId(gameId)) {
@@ -57,6 +61,7 @@ public class GameAnalysisService {
                 return;
             }
 
+            log.info("开始逐步分析 {} 步棋", moves.size());
             // 逐步分析每一步棋
             List<AnalysisResult> results = new ArrayList<>();
             StringBuilder currentMoves = new StringBuilder();
@@ -83,8 +88,14 @@ public class GameAnalysisService {
                 result.setGameId(gameId);
                 result.setMoveNumber(moveNumber);
                 result.setMoveSan(move); // 注意：这里是 UCI 格式，实际应转换为 SAN
-                result.setScore(actualAnalysis.getScore());
-                result.setBestMove(bestAnalysis.getBestMove());
+
+                // 处理可能为 null 的值，提供默认值
+                String scoreValue = actualAnalysis.getScore();
+                result.setScore(scoreValue != null ? scoreValue : "0");
+
+                String bestMoveValue = bestAnalysis.getBestMove();
+                result.setBestMove(bestMoveValue != null ? bestMoveValue : "none");
+
                 result.setMoveClassification(classification);
 
                 results.add(result);

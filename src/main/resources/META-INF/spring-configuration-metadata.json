@@ -1,0 +1,46 @@
+{
+  "groups": [
+    {
+      "name": "stockfish",
+      "type": "org.example.stockfishanalyzer.config.StockfishProperties",
+      "sourceType": "org.example.stockfishanalyzer.config.StockfishProperties"
+    },
+    {
+      "name": "stockfish.engine",
+      "type": "org.example.stockfishanalyzer.config.StockfishProperties$Engine",
+      "sourceType": "org.example.stockfishanalyzer.config.StockfishProperties",
+      "sourceMethod": "getEngine()"
+    },
+    {
+      "name": "stockfish.analysis",
+      "type": "org.example.stockfishanalyzer.config.StockfishProperties$Analysis",
+      "sourceType": "org.example.stockfishanalyzer.config.StockfishProperties",
+      "sourceMethod": "getAnalysis()"
+    }
+  ],
+  "properties": [
+    {
+      "name": "stockfish.engine.path",
+      "type": "java.lang.String",
+      "description": "Stockfish 引擎可执行文件路径",
+      "sourceType": "org.example.stockfishanalyzer.config.StockfishProperties$Engine",
+      "defaultValue": "/usr/local/bin/stockfish"
+    },
+    {
+      "name": "stockfish.analysis.movetime",
+      "type": "java.lang.Integer",
+      "description": "分析时间（毫秒）",
+      "sourceType": "org.example.stockfishanalyzer.config.StockfishProperties$Analysis",
+      "defaultValue": 1000
+    },
+    {
+      "name": "stockfish.analysis.depth",
+      "type": "java.lang.Integer",
+      "description": "分析深度",
+      "sourceType": "org.example.stockfishanalyzer.config.StockfishProperties$Analysis",
+      "defaultValue": 18
+    }
+  ],
+  "hints": []
+}
+

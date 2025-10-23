@@ -1,0 +1,20 @@
+[Event "casual correspondence game"]
+[Site "https://lichess.org/VxZBqXAA"]
+[Date "2025.10.10"]
+[White "LIMBOWV"]
+[Black "Anonymous"]
+[Result "0-1"]
+[GameId "VxZBqXAA"]
+[UTCDate "2025.10.10"]
+[UTCTime "13:58:41"]
+[WhiteElo "1500"]
+[BlackElo "?"]
+[Variant "Standard"]
+[TimeControl "-"]
+[ECO "B01"]
+[Opening "Scandinavian Defense"]
+[Termination "Normal"]
+
+1. e4 d5 2. Nc3 dxe4 3. Nxe4 Bf5 4. Qf3 Bg6 5. Qf4 Nf6 6. f3 Nxe4 7. fxe4 Nc6 8. c3 Qd6 9. b4 Qxf4 10. b5 Ne5 11. Ba3 e6 12. Nh3 Qxe4+ 13. Kd1 Bxa3 14. d3 Nxd3 15. Kd2 Bb2 16. Bxd3 Qxg2+ 17. Ke3 Bxa1 18. Rxa1 Bxd3 19. Kxd3 Qxh3+ 20. Ke4 Qxc3 21. Rf1 Qc4+ 22. Ke3 Qxf1 23. Ke4 Qxb5 24. h4 c5 25. a4 Qxa4+ 26. Ke5 c4 27. h5 c3 28. Kd6 c2 29. h6 gxh6 30. Kc7 c1=N 31. Kxb7 Rd8 32. Kc7 e5 33. Kb7 e4 34. Kc7 e3 35. Kb7 e2 36. Kc7 e1=N 37. Kb7 h5 38. Kc7 h4 39. Kb7 h3 40. Kc7 h2 41. Kb7 h1=N 42. Kc7 f5 43. Kb7 f4 44. Kc7 f3 45. Kb7 f2 46. Kc7 f1=N 47. Kb7 h5 48. Kc7 h4 49. Kb7 Nhg3 50. Kc7 h3 51. Kb7 h2 52. Kc7 h1=N 53. Kb7 a5 54. Ka6 Qa1 55. Kb5 a4 56. Ka5 a3 57. Ka4 Qb2 58. Ka5 a2 59. Ka4 a1=N 60. Ka5 Qa2+ 61. Kb4 Rc8 62. Kb5 Qb2+ 63. Ka4 Ra8# 0-1
+
+

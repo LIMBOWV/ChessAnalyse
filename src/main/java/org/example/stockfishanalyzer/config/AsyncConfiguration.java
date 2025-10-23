@@ -10,5 +10,4 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @Configuration
 @EnableAsync
 public class AsyncConfiguration {
-    // Spring Boot 会自动使用 application.properties 中配置的线程池参数
 }

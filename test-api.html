@@ -42,7 +42,7 @@
         button:hover {
             background-color: #45a049;
         }
-        .result {
+        #result {
             margin-top: 20px;
             padding: 15px;
             background-color: #f9f9f9;
@@ -51,7 +51,8 @@
             white-space: pre-wrap;
             font-family: monospace;
         }
-        .error {
+        /* noinspection CssUnusedSymbol */
+        #result.error {
             border-left-color: #f44336;
             background-color: #ffebee;
         }
@@ -67,8 +68,8 @@
         <h1>🏰 Stockfish Analyzer API 测试</h1>
 
         <h2>1. 上传 PGN 文件</h2>
-        <label>PGN 内容：</label>
-        <textarea id="pgnContent">[Event "Test Game"]
+        <label for="pgnContent">PGN 内容：</label>
+        <textarea id="pgnContent" name="pgnContent">[Event "Test Game"]
 [Site "Online"]
 [Date "2024.01.01"]
 [White "Player1"]
@@ -83,20 +84,27 @@
         <button onclick="getGames()">获取棋局列表</button>
 
         <h2>3. 查看分析结果</h2>
-        <label>棋局 ID：</label>
-        <input type="number" id="gameId" value="1" style="padding: 5px; width: 100px;">
+        <label for="gameId">棋局 ID：</label>
+        <input type="number" id="gameId" name="gameId" value="1" style="padding: 5px; width: 100px;">
         <button onclick="getAnalysis()">获取分析结果</button>
 
         <div id="result" style="display: none;"></div>
+
+        <!-- 用于 IDE 检测的占位元素 -->
+        <div style="display: none;" class="error"></div>
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:8080/api/pgn';
+        const API_BASE = 'http://localhost:9090/api/pgn';
 
         function showResult(data, isError = false) {
             const resultDiv = document.getElementById('result');
             resultDiv.style.display = 'block';
-            resultDiv.className = isError ? 'result error' : 'result';
+            if (isError) {
+                resultDiv.classList.add('error');
+            } else {
+                resultDiv.classList.remove('error');
+            }
             resultDiv.textContent = JSON.stringify(data, null, 2);
         }
 

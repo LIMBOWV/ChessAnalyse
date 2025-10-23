@@ -129,7 +129,7 @@ java -jar target/stockfish-analyzer-0.0.1-SNAPSHOT.jar
 
 1. **上传 PGN 文件**
    ```bash
-   curl -X POST http://localhost:8080/api/pgn/upload \
+   curl -X POST http://localhost:9090/api/pgn/upload \
      -H "Content-Type: text/plain" \
      --data '[Event "Test Game"]
    [Site "Online"]
@@ -143,12 +143,12 @@ java -jar target/stockfish-analyzer-0.0.1-SNAPSHOT.jar
 
 2. **查看棋局列表**
    ```bash
-   curl http://localhost:8080/api/pgn/games?userId=1
+   curl http://localhost:9090/api/pgn/games?userId=1
    ```
 
 3. **查看分析结果**
    ```bash
-   curl http://localhost:8080/api/pgn/analysis/1
+   curl http://localhost:9090/api/pgn/analysis/1
    ```
 
 ---
