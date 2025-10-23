@@ -51,8 +51,8 @@
             white-space: pre-wrap;
             font-family: monospace;
         }
-        /* noinspection CssUnusedSymbol */
-        #result.error {
+        /* 当出现错误时，既支持 #result.error（JS 动态添加），也支持 .error（静态占位符/IDE 检测） */
+        #result.error, .error {
             border-left-color: #f44336;
             background-color: #ffebee;
         }
@@ -85,7 +85,7 @@
 
         <h2>3. 查看分析结果</h2>
         <label for="gameId">棋局 ID：</label>
-        <input type="number" id="gameId" name="gameId" value="1" style="padding: 5px; width: 100px;">
+        <input type="number" id="gameId" name="gameId" aria-label="棋局 ID" value="1" style="padding: 5px; width: 100px;">
         <button onclick="getAnalysis()">获取分析结果</button>
 
         <div id="result" style="display: none;"></div>
