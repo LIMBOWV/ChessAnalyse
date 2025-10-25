@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统设置 - Stockfish 分析器</title>
+    <script src="/vendor/vue.global.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+                'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            transition: background 0.3s ease;
+        }
+
+        /* 深色主题 */
+        body.dark-theme {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        body.dark-theme .navbar {
+            background: #2a2a3e;
+            color: #e0e0e0;
+        }
+
+        body.dark-theme .navbar h1 {
+            color: #e0e0e0;
+        }
+
+        body.dark-theme .settings-card {
+            background: #2a2a3e;
+            color: #e0e0e0;
+        }
+
+        body.dark-theme .settings-card h2 {
+            color: #e0e0e0;
+            border-bottom-color: #444;
+        }
+
+        body.dark-theme .settings-section h3 {
+            color: #b0b0b0;
+        }
+
+        body.dark-theme .setting-item {
+            border-bottom-color: #444;
+        }
+
+        body.dark-theme .setting-label .label-text {
+            color: #e0e0e0;
+        }
+
+        body.dark-theme .setting-label .label-desc {
+            color: #999;
+        }
+
+        body.dark-theme select {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            border-color: #444;
+        }
+
+        body.dark-theme input[type="range"] {
+            background: #444;
+        }
+
+        body.dark-theme .slider-value {
+            color: #8b9dff;
+        }
+
+        body.dark-theme .theme-option {
+            border-color: #444;
+        }
+
+        body.dark-theme .theme-option.active {
+            border-color: #8b9dff;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            background: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h1 {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #e0e7ff;
+            color: #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #c7d2fe;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        /* 设置卡片 */
+        .settings-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .settings-card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .settings-section {
+            margin-bottom: 30px;
+        }
+
+        .settings-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .settings-section h3 {
+            color: #555;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            flex: 1;
+        }
+
+        .setting-label .label-text {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .setting-label .label-desc {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .setting-control {
+            flex-shrink: 0;
+            margin-left: 20px;
+        }
+
+        /* 选择器样式 */
+        select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 150px;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* 滑块样式 */
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-width: 250px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e7ff;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+        }
+
+        .slider-value {
+            min-width: 40px;
+            text-align: center;
+            font-weight: 500;
+            color: #667eea;
+        }
+
+        /* 开关样式 */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 26px;
+        }
+
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .switch-slider {
+            background-color: #667eea;
+        }
+
+        input:checked + .switch-slider:before {
+            transform: translateX(24px);
+        }
+
+        /* 颜色选择器 */
+        .theme-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .theme-option {
+            width: 80px;
+            height: 60px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .theme-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .theme-option.active {
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .theme-option .theme-preview {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 棋盘主题预览 */
+        .board-preview {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+        }
+
+        .board-preview div {
+            border: none;
+        }
+
+        /* 操作按钮区 */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 保存提示 */
+        .save-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 导航栏 -->
+        <div class="navbar">
+            <h1>⚙️ {{ t.title }}</h1>
+            <div class="nav-buttons">
+                <a href="/" class="btn btn-secondary">{{ t.home }}</a>
+                <a href="/dashboard.html" class="btn btn-secondary">{{ t.dashboard }}</a>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- 加载状态 -->
+            <div v-if="loading" class="loading">
+                <div class="spinner"></div>
+                <p>{{ t.loading }}</p>
+            </div>
+
+            <template v-else>
+                <!-- 界面设置 -->
+                <div class="settings-card">
+                    <h2>🎨 {{ t.uiSettings }}</h2>
+                    
+                    <div class="settings-section">
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <div class="label-text">{{ t.theme }}</div>
+                                <div class="label-desc">{{ t.themeDesc }}</div>
+                            </div>
+                            <div class="setting-control">
+                                <select v-model="settings.theme">
+                                    <option value="light">{{ t.themeLight }}</option>
+                                    <option value="dark">{{ t.themeDark }}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <div class="label-text">{{ t.language }}</div>
+                                <div class="label-desc">{{ t.languageDesc }}</div>
+                            </div>
+                            <div class="setting-control">
+                                <select v-model="settings.language">
+                                    <option value="zh-CN">简体中文</option>
+                                    <option value="en-US">English</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <div class="label-text">{{ t.boardTheme }}</div>
+                                <div class="label-desc">{{ t.boardThemeDesc }}</div>
+                            </div>
+                            <div class="setting-control">
+                                <div class="theme-options">
+                                    <div :class="['theme-option', {active: settings.boardTheme === 'brown'}]" 
+                                         @click="settings.boardTheme = 'brown'">
+                                        <div class="board-preview">
+                                            <div style="background: #f0d9b5"></div>
+                                            <div style="background: #b58863"></div>
+                                            <div style="background: #b58863"></div>
+                                            <div style="background: #f0d9b5"></div>
+                                        </div>
+                                    </div>
+                                    <div :class="['theme-option', {active: settings.boardTheme === 'blue'}]" 
+                                         @click="settings.boardTheme = 'blue'">
+                                        <div class="board-preview">
+                                            <div style="background: #dee3e6"></div>
+                                            <div style="background: #8ca2ad"></div>
+                                            <div style="background: #8ca2ad"></div>
+                                            <div style="background: #dee3e6"></div>
+                                        </div>
+                                    </div>
+                                    <div :class="['theme-option', {active: settings.boardTheme === 'green'}]" 
+                                         @click="settings.boardTheme = 'green'">
+                                        <div class="board-preview">
+                                            <div style="background: #ffffdd"></div>
+                                            <div style="background: #86a666"></div>
+                                            <div style="background: #86a666"></div>
+                                            <div style="background: #ffffdd"></div>
+                                        </div>
+                                    </div>
+                                    <div :class="['theme-option', {active: settings.boardTheme === 'gray'}]" 
+                                         @click="settings.boardTheme = 'gray'">
+                                        <div class="board-preview">
+                                            <div style="background: #e8e8e8"></div>
+                                            <div style="background: #999999"></div>
+                                            <div style="background: #999999"></div>
+                                            <div style="background: #e8e8e8"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <div class="label-text">{{ t.pieceSet }}</div>
+                                <div class="label-desc">{{ t.pieceSetDesc }}</div>
+                            </div>
+                            <div class="setting-control">
+                                <select v-model="settings.pieceSet">
+                                    <option value="default">默认 / Default</option>
+                                    <option value="alpha">Alpha</option>
+                                    <option value="merida">Merida</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 分析设置 -->
+                <div class="settings-card">
+                    <h2>🔍 {{ t.analysisSettings }}</h2>
+                    
+                    <div class="settings-section">
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <div class="label-text">{{ t.analysisDepth }}</div>
+                                <div class="label-desc">{{ t.analysisDepthDesc }}</div>
+                            </div>
+                            <div class="setting-control">
+                                <div class="slider-container">
+                                    <input type="range" min="10" max="30" v-model.number="settings.analysisDepth">
+                                    <span class="slider-value">{{ settings.analysisDepth }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <div class="label-text">{{ t.engineThreads }}</div>
+                                <div class="label-desc">{{ t.engineThreadsDesc }}</div>
+                            </div>
+                            <div class="setting-control">
+                                <div class="slider-container">
+                                    <input type="range" min="1" max="8" v-model.number="settings.engineThreads">
+                                    <span class="slider-value">{{ settings.engineThreads }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <div class="label-text">{{ t.autoAnalyze }}</div>
+                                <div class="label-desc">{{ t.autoAnalyzeDesc }}</div>
+                            </div>
+                            <div class="setting-control">
+                                <label class="switch">
+                                    <input type="checkbox" v-model="settings.autoAnalyze">
+                                    <span class="switch-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 通知设置 -->
+                <div class="settings-card">
+                    <h2>🔔 {{ t.notificationSettings }}</h2>
+                    
+                    <div class="settings-section">
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <div class="label-text">{{ t.notifications }}</div>
+                                <div class="label-desc">{{ t.notificationsDesc }}</div>
+                            </div>
+                            <div class="setting-control">
+                                <label class="switch">
+                                    <input type="checkbox" v-model="settings.notificationsEnabled">
+                                    <span class="switch-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="settings-card">
+                    <div class="action-buttons">
+                        <button @click="resetToDefault" class="btn btn-danger">
+                            🔄 {{ t.reset }}
+                        </button>
+                        <button @click="saveSettings" class="btn btn-success">
+                            💾 {{ t.save }}
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- 保存成功提示 -->
+        <div v-if="showSaveIndicator" class="save-indicator">
+            ✓ {{ t.saved }}
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    userId: 1,  // 当前用户ID
+                    loading: false,
+                    settings: {
+                        theme: 'light',
+                        language: 'zh-CN',
+                        boardTheme: 'brown',
+                        pieceSet: 'default',
+                        analysisDepth: 20,
+                        engineThreads: 4,
+                        notificationsEnabled: true,
+                        autoAnalyze: false
+                    },
+                    showSaveIndicator: false,
+                    i18n: {
+                        'zh-CN': {
+                            title: '系统设置',
+                            home: '返回首页',
+                            dashboard: '控制面板',
+                            loading: '正在加载设置...',
+                            uiSettings: '界面设置',
+                            theme: '主题模式',
+                            themeDesc: '选择浅色或深色主题',
+                            themeLight: '浅色主题',
+                            themeDark: '深色主题',
+                            language: '语言',
+                            languageDesc: '选择界面显示语言',
+                            boardTheme: '棋盘主题',
+                            boardThemeDesc: '选择棋盘颜色风格',
+                            pieceSet: '棋子样式',
+                            pieceSetDesc: '选择棋子图案风格',
+                            analysisSettings: '分析设置',
+                            analysisDepth: '分析深度',
+                            analysisDepthDesc: '引擎分析的深度，越高越精确但越慢 (10-30)',
+                            engineThreads: '引擎线程数',
+                            engineThreadsDesc: '使用的CPU线程数，越多速度越快 (1-8)',
+                            autoAnalyze: '自动分析',
+                            autoAnalyzeDesc: '上传棋局后自动开始分析',
+                            notificationSettings: '通知设置',
+                            notifications: '启用通知',
+                            notificationsDesc: '分析完成后显示通知',
+                            reset: '恢复默认设置',
+                            save: '保存设置',
+                            saved: '设置已保存',
+                            confirmReset: '确定要恢复默认设置吗？'
+                        },
+                        'en-US': {
+                            title: 'System Settings',
+                            home: 'Home',
+                            dashboard: 'Dashboard',
+                            loading: 'Loading settings...',
+                            uiSettings: 'UI Settings',
+                            theme: 'Theme Mode',
+                            themeDesc: 'Choose light or dark theme',
+                            themeLight: 'Light Theme',
+                            themeDark: 'Dark Theme',
+                            language: 'Language',
+                            languageDesc: 'Select interface language',
+                            boardTheme: 'Board Theme',
+                            boardThemeDesc: 'Select board color style',
+                            pieceSet: 'Piece Set',
+                            pieceSetDesc: 'Select piece graphics style',
+                            analysisSettings: 'Analysis Settings',
+                            analysisDepth: 'Analysis Depth',
+                            analysisDepthDesc: 'Engine analysis depth, higher is more accurate but slower (10-30)',
+                            engineThreads: 'Engine Threads',
+                            engineThreadsDesc: 'Number of CPU threads to use, more is faster (1-8)',
+                            autoAnalyze: 'Auto Analyze',
+                            autoAnalyzeDesc: 'Automatically start analysis after uploading games',
+                            notificationSettings: 'Notification Settings',
+                            notifications: 'Enable Notifications',
+                            notificationsDesc: 'Show notifications when analysis is complete',
+                            reset: 'Reset to Default',
+                            save: 'Save Settings',
+                            saved: 'Settings Saved',
+                            confirmReset: 'Are you sure you want to reset to default settings?'
+                        }
+                    }
+                };
+            },
+            computed: {
+                t() {
+                    return this.i18n[this.settings.language] || this.i18n['zh-CN'];
+                }
+            },
+            watch: {
+                'settings.theme': function(newTheme) {
+                    this.applyTheme(newTheme);
+                },
+                'settings.language': function(newLang) {
+                    this.applyLanguage(newLang);
+                }
+            },
+            methods: {
+                applyTheme(theme) {
+                    if (theme === 'dark') {
+                        document.body.classList.add('dark-theme');
+                    } else {
+                        document.body.classList.remove('dark-theme');
+                    }
+                    // 保存到 localStorage
+                    localStorage.setItem('theme', theme);
+                },
+
+                applyLanguage(language) {
+                    document.documentElement.lang = language === 'en-US' ? 'en' : 'zh-CN';
+                    // 保存到 localStorage
+                    localStorage.setItem('language', language);
+                },
+
+                async loadSettings() {
+                    this.loading = true;
+                    try {
+                        const response = await fetch(`/api/settings?userId=${this.userId}`);
+                        if (response.ok) {
+                            this.settings = await response.json();
+                            // 应用主题和语言
+                            this.applyTheme(this.settings.theme);
+                            this.applyLanguage(this.settings.language);
+                        } else {
+                            alert(this.t.loading);
+                        }
+                    } catch (error) {
+                        console.error('加载设置失败:', error);
+                        alert(this.t.loading);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async saveSettings() {
+                    try {
+                        const response = await fetch(`/api/settings?userId=${this.userId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.settings)
+                        });
+
+                        if (response.ok) {
+                            this.settings = await response.json();
+                            this.showSaveIndicator = true;
+                            setTimeout(() => {
+                                this.showSaveIndicator = false;
+                            }, 2000);
+                        } else {
+                            alert('保存设置失败');
+                        }
+                    } catch (error) {
+                        console.error('保存设置失败:', error);
+                        alert('保存设置失败，请稍后重试');
+                    }
+                },
+
+                async resetToDefault() {
+                    if (!confirm(this.t.confirmReset)) {
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/api/settings/reset?userId=${this.userId}`, {
+                            method: 'POST'
+                        });
+
+                        if (response.ok) {
+                            this.settings = await response.json();
+                            this.showSaveIndicator = true;
+                            setTimeout(() => {
+                                this.showSaveIndicator = false;
+                            }, 2000);
+                        } else {
+                            alert('重置设置失败');
+                        }
+                    } catch (error) {
+                        console.error('重置设置失败:', error);
+                        alert('重置设置失败，请稍后重试');
+                    }
+                }
+            },
+            mounted() {
+                this.loadSettings();
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

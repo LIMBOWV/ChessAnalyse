@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务管理 - Stockfish 分析器</title>
+    <script src="/vendor/vue.global.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+                'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            background: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h1 {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #e0e7ff;
+            color: #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #c7d2fe;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-small {
+            padding: 5px 12px;
+            font-size: 12px;
+        }
+
+        /* 统计卡片 */
+        .statistics-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-card .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .stat-card .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .stat-card .stat-sublabel {
+            color: #999;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        /* 快速添加 */
+        .quick-add-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .quick-add-form {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* 任务看板 */
+        .kanban-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .kanban-column {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            min-height: 500px;
+        }
+
+        .kanban-column h3 {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .kanban-column h3 .count {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .task-card {
+            background: #f9fafb;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .task-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .task-card.priority-high {
+            border-left-color: #ef4444;
+        }
+
+        .task-card.priority-medium {
+            border-left-color: #f59e0b;
+        }
+
+        .task-card.priority-low {
+            border-left-color: #10b981;
+        }
+
+        .task-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .task-badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .badge-type {
+            background: #e0e7ff;
+            color: #667eea;
+        }
+
+        .badge-priority-high {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+
+        .badge-priority-medium {
+            background: #fef3c7;
+            color: #f59e0b;
+        }
+
+        .badge-priority-low {
+            background: #d1fae5;
+            color: #10b981;
+        }
+
+        .task-date {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .task-description {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 10px;
+            line-height: 1.4;
+            max-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .task-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .task-link:hover {
+            text-decoration: underline;
+        }
+
+        /* 模态框 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .modal .form-group {
+            margin-bottom: 15px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        /* 加载和空状态 */
+        .loading, .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .kanban-board {
+                grid-template-columns: 1fr;
+            }
+            
+            .quick-add-form {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 导航栏 -->
+        <div class="navbar">
+            <h1>📋 任务管理</h1>
+            <div class="nav-buttons">
+                <a href="/" class="btn btn-secondary">返回首页</a>
+                <a href="/dashboard.html" class="btn btn-secondary">控制面板</a>
+                <button @click="refreshData" class="btn btn-primary">🔄 刷新</button>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- 加载状态 -->
+            <div v-if="loading" class="loading">
+                <div class="spinner"></div>
+                <p>正在加载任务数据...</p>
+            </div>
+
+            <template v-else>
+                <!-- 统计卡片 -->
+                <div class="statistics-section" v-if="statistics">
+                    <div class="stat-card">
+                        <div class="stat-label">总任务数</div>
+                        <div class="stat-value">{{ statistics.totalTasks }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">今日任务</div>
+                        <div class="stat-value">{{ statistics.todayTasks }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">本周任务</div>
+                        <div class="stat-value">{{ statistics.weekTasks }}</div>
+                        <div class="stat-sublabel">完成率 {{ statistics.weekCompletionRate.toFixed(1) }}%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">待办</div>
+                        <div class="stat-value">{{ statistics.pendingTasks }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">进行中</div>
+                        <div class="stat-value">{{ statistics.inProgressTasks }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">已完成</div>
+                        <div class="stat-value">{{ statistics.completedTasks }}</div>
+                    </div>
+                </div>
+
+                <!-- 快速添加 -->
+                <div class="quick-add-section">
+                    <h3 style="margin-bottom: 15px;">➕ 快速添加任务</h3>
+                    <div class="quick-add-form">
+                        <div class="form-group">
+                            <label>任务标题 *</label>
+                            <input type="text" v-model="quickTask.title" placeholder="例如：学习西西里防御">
+                        </div>
+                        <div class="form-group" style="max-width: 150px;">
+                            <label>类型</label>
+                            <select v-model="quickTask.type">
+                                <option value="study_opening">学习开局</option>
+                                <option value="analyze_game">分析棋局</option>
+                                <option value="practice">练习</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="max-width: 120px;">
+                            <label>优先级</label>
+                            <select v-model="quickTask.priority">
+                                <option value="high">高</option>
+                                <option value="medium">中</option>
+                                <option value="low">低</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="max-width: 150px;">
+                            <label>目标日期</label>
+                            <input type="date" v-model="quickTask.targetDate">
+                        </div>
+                        <button @click="quickAddTask" class="btn btn-success" style="align-self: flex-end;">添加</button>
+                    </div>
+                </div>
+
+                <!-- 任务看板 -->
+                <div class="kanban-board">
+                    <!-- 待办 -->
+                    <div class="kanban-column">
+                        <h3>
+                            <span>📝 待办</span>
+                            <span class="count">{{ pendingTasks.length }}</span>
+                        </h3>
+                        <div v-for="task in pendingTasks" :key="task.id" 
+                             :class="['task-card', `priority-${task.priority}`]"
+                             @click="viewTask(task)">
+                            <div class="task-title">{{ task.taskTitle }}</div>
+                            <div class="task-meta">
+                                <span class="task-badge badge-type">{{ getTypeLabel(task.taskType) }}</span>
+                                <span :class="['task-badge', `badge-priority-${task.priority}`]">
+                                    {{ getPriorityLabel(task.priority) }}
+                                </span>
+                            </div>
+                            <div class="task-date" v-if="task.targetDate">
+                                🎯 {{ task.targetDate }}
+                            </div>
+                            <div class="task-description" v-if="task.description">
+                                {{ task.description }}
+                            </div>
+                            <div class="task-actions">
+                                <button @click.stop="updateStatus(task.id, 'in_progress')" class="btn btn-primary btn-small">
+                                    开始
+                                </button>
+                                <button @click.stop="editTask(task)" class="btn btn-secondary btn-small">
+                                    编辑
+                                </button>
+                                <button @click.stop="deleteTask(task.id)" class="btn btn-danger btn-small">
+                                    删除
+                                </button>
+                            </div>
+                        </div>
+                        <div v-if="pendingTasks.length === 0" style="text-align: center; color: #999; padding: 40px 0;">
+                            暂无待办任务
+                        </div>
+                    </div>
+
+                    <!-- 进行中 -->
+                    <div class="kanban-column">
+                        <h3>
+                            <span>⚡ 进行中</span>
+                            <span class="count">{{ inProgressTasks.length }}</span>
+                        </h3>
+                        <div v-for="task in inProgressTasks" :key="task.id" 
+                             :class="['task-card', `priority-${task.priority}`]"
+                             @click="viewTask(task)">
+                            <div class="task-title">{{ task.taskTitle }}</div>
+                            <div class="task-meta">
+                                <span class="task-badge badge-type">{{ getTypeLabel(task.taskType) }}</span>
+                                <span :class="['task-badge', `badge-priority-${task.priority}`]">
+                                    {{ getPriorityLabel(task.priority) }}
+                                </span>
+                            </div>
+                            <div class="task-date" v-if="task.targetDate">
+                                🎯 {{ task.targetDate }}
+                            </div>
+                            <div class="task-description" v-if="task.description">
+                                {{ task.description }}
+                            </div>
+                            <div class="task-actions">
+                                <button @click.stop="updateStatus(task.id, 'completed')" class="btn btn-success btn-small">
+                                    完成
+                                </button>
+                                <button @click.stop="updateStatus(task.id, 'pending')" class="btn btn-secondary btn-small">
+                                    暂停
+                                </button>
+                                <button @click.stop="deleteTask(task.id)" class="btn btn-danger btn-small">
+                                    删除
+                                </button>
+                            </div>
+                        </div>
+                        <div v-if="inProgressTasks.length === 0" style="text-align: center; color: #999; padding: 40px 0;">
+                            暂无进行中的任务
+                        </div>
+                    </div>
+
+                    <!-- 已完成 -->
+                    <div class="kanban-column">
+                        <h3>
+                            <span>✅ 已完成</span>
+                            <span class="count">{{ completedTasks.length }}</span>
+                        </h3>
+                        <div v-for="task in completedTasks" :key="task.id" 
+                             :class="['task-card', `priority-${task.priority}`]"
+                             @click="viewTask(task)">
+                            <div class="task-title">{{ task.taskTitle }}</div>
+                            <div class="task-meta">
+                                <span class="task-badge badge-type">{{ getTypeLabel(task.taskType) }}</span>
+                                <span :class="['task-badge', `badge-priority-${task.priority}`]">
+                                    {{ getPriorityLabel(task.priority) }}
+                                </span>
+                            </div>
+                            <div class="task-date" v-if="task.completedAt">
+                                ✓ {{ formatDateTime(task.completedAt) }}
+                            </div>
+                            <div class="task-description" v-if="task.description">
+                                {{ task.description }}
+                            </div>
+                            <div class="task-actions">
+                                <button @click.stop="updateStatus(task.id, 'pending')" class="btn btn-secondary btn-small">
+                                    重新打开
+                                </button>
+                                <button @click.stop="deleteTask(task.id)" class="btn btn-danger btn-small">
+                                    删除
+                                </button>
+                            </div>
+                        </div>
+                        <div v-if="completedTasks.length === 0" style="text-align: center; color: #999; padding: 40px 0;">
+                            暂无已完成的任务
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- 编辑任务模态框 -->
+        <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
+            <div class="modal">
+                <h2>{{ editingTask.id ? '编辑任务' : '查看任务' }}</h2>
+                <div class="form-group">
+                    <label>任务标题 *</label>
+                    <input type="text" v-model="editingTask.taskTitle">
+                </div>
+                <div class="form-group">
+                    <label>类型</label>
+                    <select v-model="editingTask.taskType">
+                        <option value="study_opening">学习开局</option>
+                        <option value="analyze_game">分析棋局</option>
+                        <option value="practice">练习</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>优先级</label>
+                    <select v-model="editingTask.priority">
+                        <option value="high">高</option>
+                        <option value="medium">中</option>
+                        <option value="low">低</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>目标日期</label>
+                    <input type="date" v-model="editingTask.targetDate">
+                </div>
+                <div class="form-group">
+                    <label>关联棋局ID（可选）</label>
+                    <input type="number" v-model.number="editingTask.relatedGameId">
+                </div>
+                <div class="form-group">
+                    <label>描述</label>
+                    <textarea v-model="editingTask.description"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button @click="closeEditModal" class="btn btn-secondary">取消</button>
+                    <button @click="saveTask" class="btn btn-primary">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    userId: 1,  // 当前用户ID，实际应从登录状态获取
+                    loading: false,
+                    tasks: [],
+                    statistics: null,
+                    showEditModal: false,
+                    editingTask: {},
+                    quickTask: {
+                        title: '',
+                        type: 'study_opening',
+                        priority: 'medium',
+                        targetDate: ''
+                    }
+                };
+            },
+            computed: {
+                pendingTasks() {
+                    return this.tasks.filter(t => t.status === 'pending');
+                },
+                inProgressTasks() {
+                    return this.tasks.filter(t => t.status === 'in_progress');
+                },
+                completedTasks() {
+                    return this.tasks.filter(t => t.status === 'completed');
+                }
+            },
+            methods: {
+                async loadData() {
+                    this.loading = true;
+                    try {
+                        // 加载任务列表
+                        const tasksResponse = await fetch(`/api/tasks?userId=${this.userId}`);
+                        if (tasksResponse.ok) {
+                            this.tasks = await tasksResponse.json();
+                        }
+
+                        // 加载统计数据
+                        const statsResponse = await fetch(`/api/tasks/statistics?userId=${this.userId}`);
+                        if (statsResponse.ok) {
+                            this.statistics = await statsResponse.json();
+                        }
+                    } catch (error) {
+                        console.error('加载数据失败:', error);
+                        alert('加载数据失败，请稍后重试');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async quickAddTask() {
+                    if (!this.quickTask.title.trim()) {
+                        alert('请输入任务标题');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/api/tasks?userId=${this.userId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                taskTitle: this.quickTask.title,
+                                taskType: this.quickTask.type,
+                                priority: this.quickTask.priority,
+                                targetDate: this.quickTask.targetDate || null,
+                                description: ''
+                            })
+                        });
+
+                        if (response.ok) {
+                            this.quickTask = {
+                                title: '',
+                                type: 'study_opening',
+                                priority: 'medium',
+                                targetDate: ''
+                            };
+                            this.loadData();
+                        } else {
+                            alert('添加任务失败');
+                        }
+                    } catch (error) {
+                        console.error('添加任务失败:', error);
+                        alert('添加任务失败，请稍后重试');
+                    }
+                },
+
+                async updateStatus(taskId, newStatus) {
+                    try {
+                        const response = await fetch(`/api/tasks/${taskId}/status`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: newStatus })
+                        });
+
+                        if (response.ok) {
+                            this.loadData();
+                        } else {
+                            alert('更新状态失败');
+                        }
+                    } catch (error) {
+                        console.error('更新状态失败:', error);
+                        alert('更新状态失败，请稍后重试');
+                    }
+                },
+
+                viewTask(task) {
+                    this.editingTask = { ...task };
+                    this.showEditModal = true;
+                },
+
+                editTask(task) {
+                    this.editingTask = { ...task };
+                    this.showEditModal = true;
+                },
+
+                closeEditModal() {
+                    this.showEditModal = false;
+                    this.editingTask = {};
+                },
+
+                async saveTask() {
+                    if (!this.editingTask.taskTitle.trim()) {
+                        alert('请输入任务标题');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/api/tasks/${this.editingTask.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                taskTitle: this.editingTask.taskTitle,
+                                taskType: this.editingTask.taskType,
+                                priority: this.editingTask.priority,
+                                targetDate: this.editingTask.targetDate,
+                                relatedGameId: this.editingTask.relatedGameId,
+                                description: this.editingTask.description
+                            })
+                        });
+
+                        if (response.ok) {
+                            this.closeEditModal();
+                            this.loadData();
+                        } else {
+                            alert('保存任务失败');
+                        }
+                    } catch (error) {
+                        console.error('保存任务失败:', error);
+                        alert('保存任务失败，请稍后重试');
+                    }
+                },
+
+                async deleteTask(taskId) {
+                    if (!confirm('确定要删除这个任务吗？')) {
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/api/tasks/${taskId}`, {
+                            method: 'DELETE'
+                        });
+
+                        if (response.ok) {
+                            this.loadData();
+                        } else {
+                            alert('删除任务失败');
+                        }
+                    } catch (error) {
+                        console.error('删除任务失败:', error);
+                        alert('删除任务失败，请稍后重试');
+                    }
+                },
+
+                refreshData() {
+                    this.loadData();
+                },
+
+                getTypeLabel(type) {
+                    const labels = {
+                        'study_opening': '学习开局',
+                        'analyze_game': '分析棋局',
+                        'practice': '练习'
+                    };
+                    return labels[type] || type;
+                },
+
+                getPriorityLabel(priority) {
+                    const labels = {
+                        'high': '高优先级',
+                        'medium': '中优先级',
+                        'low': '低优先级'
+                    };
+                    return labels[priority] || priority;
+                },
+
+                formatDateTime(datetime) {
+                    if (!datetime) return '';
+                    const date = new Date(datetime);
+                    return date.toLocaleString('zh-CN', {
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+            },
+            mounted() {
+                this.loadData();
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

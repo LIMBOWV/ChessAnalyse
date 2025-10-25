@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚖️ 棋局对比 - Stockfish 分析系统</title>
+    <script src="/vendor/vue.global.js"></script>
+    <script src="/vendor/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 头部 */
+        .header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+        }
+
+        .nav-links a {
+            color: #667eea;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            margin-left: 10px;
+            transition: all 0.3s;
+        }
+
+        .nav-links a:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* 选择区域 */
+        .selector-area {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+
+        .selector-row {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr auto;
+            gap: 20px;
+            align-items: end;
+        }
+
+        .game-selector label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .game-selector select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .game-selector select:focus {
+            border-color: #667eea;
+        }
+
+        .vs-label {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 对比结果 */
+        .comparison-result {
+            display: grid;
+            gap: 20px;
+        }
+
+        .result-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .result-card h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* 结论卡片 */
+        .conclusion-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .conclusion-card p {
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        /* 统计网格 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-compare-item {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 10px;
+            align-items: center;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .stat-value.game1 {
+            color: #667eea;
+        }
+
+        .stat-value.game2 {
+            color: #764ba2;
+        }
+
+        .stat-value.winner {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        /* 图表 */
+        #scoreChart {
+            width: 100%;
+            height: 400px;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            background: white;
+            padding: 60px 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .empty-state .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: #666;
+        }
+
+        /* 加载 */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 15px;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .selector-row {
+                grid-template-columns: 1fr;
+            }
+            .vs-label {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <h1>⚖️ 棋局对比分析</h1>
+            <div class="nav-links">
+                <a href="/index.html">🏠 首页</a>
+                <a href="/dashboard.html">📊 统计</a>
+                <a href="/tags.html">🏷️ 标签</a>
+            </div>
+        </div>
+
+        <!-- 选择棋局 -->
+        <div class="selector-area">
+            <div class="selector-row">
+                <div class="game-selector">
+                    <label>选择棋局 1</label>
+                    <select v-model="selectedGame1">
+                        <option value="">-- 请选择 --</option>
+                        <option v-for="game in availableGames" :key="game.id" :value="game.id">
+                            {{ game.whitePlayer }} vs {{ game.blackPlayer }} ({{ game.gameDate }})
+                        </option>
+                    </select>
+                </div>
+                
+                <div class="vs-label">VS</div>
+                
+                <div class="game-selector">
+                    <label>选择棋局 2</label>
+                    <select v-model="selectedGame2">
+                        <option value="">-- 请选择 --</option>
+                        <option v-for="game in availableGames" :key="game.id" :value="game.id">
+                            {{ game.whitePlayer }} vs {{ game.blackPlayer }} ({{ game.gameDate }})
+                        </option>
+                    </select>
+                </div>
+                
+                <button class="btn btn-primary" 
+                        @click="compareGames" 
+                        :disabled="!selectedGame1 || !selectedGame2 || selectedGame1 === selectedGame2">
+                    🔍 开始对比
+                </button>
+            </div>
+        </div>
+
+        <!-- 加载状态 -->
+        <div v-if="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>正在分析对比...</p>
+        </div>
+
+        <!-- 对比结果 -->
+        <div v-else-if="comparisonData" class="comparison-result">
+            <!-- 结论 -->
+            <div class="result-card conclusion-card">
+                <h2>📝 对比结论</h2>
+                <p>{{ comparisonData.stats.conclusion }}</p>
+            </div>
+
+            <!-- 统计对比 -->
+            <div class="result-card">
+                <h2>📊 数据对比</h2>
+                <div class="stats-grid">
+                    <!-- 精准度 -->
+                    <div class="stat-compare-item">
+                        <div>
+                            <div :class="['stat-value', 'game1', comparisonData.stats.betterAccuracy === 'game1' ? 'winner' : '']">
+                                {{ comparisonData.game1.avgAccuracy.toFixed(1) }}%
+                            </div>
+                            <div class="stat-label">棋局1</div>
+                        </div>
+                        <div class="stat-label">精准度</div>
+                        <div>
+                            <div :class="['stat-value', 'game2', comparisonData.stats.betterAccuracy === 'game2' ? 'winner' : '']">
+                                {{ comparisonData.game2.avgAccuracy.toFixed(1) }}%
+                            </div>
+                            <div class="stat-label">棋局2</div>
+                        </div>
+                    </div>
+
+                    <!-- 漏着 -->
+                    <div class="stat-compare-item">
+                        <div>
+                            <div :class="['stat-value', 'game1', comparisonData.game1.blunders < comparisonData.game2.blunders ? 'winner' : '']">
+                                {{ comparisonData.game1.blunders }}
+                            </div>
+                            <div class="stat-label">棋局1</div>
+                        </div>
+                        <div class="stat-label">漏着</div>
+                        <div>
+                            <div :class="['stat-value', 'game2', comparisonData.game2.blunders < comparisonData.game1.blunders ? 'winner' : '']">
+                                {{ comparisonData.game2.blunders }}
+                            </div>
+                            <div class="stat-label">棋局2</div>
+                        </div>
+                    </div>
+
+                    <!-- 失误 -->
+                    <div class="stat-compare-item">
+                        <div>
+                            <div :class="['stat-value', 'game1', comparisonData.game1.mistakes < comparisonData.game2.mistakes ? 'winner' : '']">
+                                {{ comparisonData.game1.mistakes }}
+                            </div>
+                            <div class="stat-label">棋局1</div>
+                        </div>
+                        <div class="stat-label">失误</div>
+                        <div>
+                            <div :class="['stat-value', 'game2', comparisonData.game2.mistakes < comparisonData.game1.mistakes ? 'winner' : '']">
+                                {{ comparisonData.game2.mistakes }}
+                            </div>
+                            <div class="stat-label">棋局2</div>
+                        </div>
+                    </div>
+
+                    <!-- 妙手 -->
+                    <div class="stat-compare-item">
+                        <div>
+                            <div :class="['stat-value', 'game1', comparisonData.game1.brilliantMoves > comparisonData.game2.brilliantMoves ? 'winner' : '']">
+                                {{ comparisonData.game1.brilliantMoves }}
+                            </div>
+                            <div class="stat-label">棋局1</div>
+                        </div>
+                        <div class="stat-label">妙手</div>
+                        <div>
+                            <div :class="['stat-value', 'game2', comparisonData.game2.brilliantMoves > comparisonData.game1.brilliantMoves ? 'winner' : '']">
+                                {{ comparisonData.game2.brilliantMoves }}
+                            </div>
+                            <div class="stat-label">棋局2</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 评分曲线 -->
+            <div class="result-card">
+                <h2>📈 评分曲线对比</h2>
+                <div id="scoreChart"></div>
+            </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div v-else class="empty-state">
+            <div class="icon">⚖️</div>
+            <h3>选择两场棋局开始对比</h3>
+            <p>对比分析可以帮助您发现不同棋局之间的优劣差异</p>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    userId: 1,
+                    availableGames: [],
+                    selectedGame1: '',
+                    selectedGame2: '',
+                    loading: false,
+                    comparisonData: null,
+                    scoreChart: null
+                }
+            },
+            mounted() {
+                this.loadAvailableGames();
+            },
+            methods: {
+                async loadAvailableGames() {
+                    try {
+                        const response = await fetch(`/api/games/list?userId=${this.userId}`);
+                        if (response.ok) {
+                            this.availableGames = await response.json();
+                        }
+                    } catch (error) {
+                        console.error('加载棋局列表错误:', error);
+                    }
+                },
+
+                async compareGames() {
+                    if (!this.selectedGame1 || !this.selectedGame2 || this.selectedGame1 === this.selectedGame2) {
+                        alert('请选择两场不同的棋局');
+                        return;
+                    }
+
+                    this.loading = true;
+                    try {
+                        const response = await fetch(
+                            `/api/comparison?gameId1=${this.selectedGame1}&gameId2=${this.selectedGame2}&userId=${this.userId}`
+                        );
+                        
+                        if (response.ok) {
+                            this.comparisonData = await response.json();
+                            this.$nextTick(() => {
+                                this.initializeChart();
+                            });
+                        } else {
+                            alert('对比分析失败');
+                        }
+                    } catch (error) {
+                        console.error('对比分析错误:', error);
+                        alert('对比分析时发生错误');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                initializeChart() {
+                    if (!this.comparisonData) return;
+
+                    const chartDom = document.getElementById('scoreChart');
+                    if (this.scoreChart) {
+                        this.scoreChart.dispose();
+                    }
+                    this.scoreChart = echarts.init(chartDom);
+
+                    const option = {
+                        tooltip: {
+                            trigger: 'axis',
+                            formatter: function(params) {
+                                let result = `第 ${params[0].axisValue} 步<br/>`;
+                                params.forEach(item => {
+                                    result += `${item.seriesName}: ${item.value ? item.value.toFixed(2) : 0} 兵<br/>`;
+                                });
+                                return result;
+                            }
+                        },
+                        legend: {
+                            data: ['棋局 1', '棋局 2'],
+                            top: 10
+                        },
+                        grid: {
+                            left: '3%',
+                            right: '4%',
+                            bottom: '3%',
+                            containLabel: true
+                        },
+                        xAxis: {
+                            type: 'category',
+                            boundaryGap: false,
+                            data: this.comparisonData.game1Scores.map(p => p.moveNumber),
+                            name: '步数'
+                        },
+                        yAxis: {
+                            type: 'value',
+                            name: '评分 (兵值)'
+                        },
+                        series: [
+                            {
+                                name: '棋局 1',
+                                type: 'line',
+                                data: this.comparisonData.game1Scores.map(p => p.score),
+                                smooth: true,
+                                lineStyle: {
+                                    color: '#667eea',
+                                    width: 2
+                                },
+                                itemStyle: {
+                                    color: '#667eea'
+                                }
+                            },
+                            {
+                                name: '棋局 2',
+                                type: 'line',
+                                data: this.comparisonData.game2Scores.map(p => p.score),
+                                smooth: true,
+                                lineStyle: {
+                                    color: '#764ba2',
+                                    width: 2
+                                },
+                                itemStyle: {
+                                    color: '#764ba2'
+                                }
+                            }
+                        ]
+                    };
+
+                    this.scoreChart.setOption(option);
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📈 趋势分析 - Stockfish 分析系统</title>
+    <script src="/vendor/vue.global.js"></script>
+    <script src="/vendor/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 头部 */
+        .header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+        }
+
+        .nav-links a {
+            color: #667eea;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            margin-left: 10px;
+            transition: all 0.3s;
+        }
+
+        .nav-links a:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* 日期选择器 */
+        .date-selector {
+            background: white;
+            padding: 20px 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .date-input {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .date-input:focus {
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        /* 总体统计卡片 */
+        .overall-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-card .icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .label {
+            color: #666;
+            font-size: 13px;
+        }
+
+        /* 图表容器 */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .chart-card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 350px;
+        }
+
+        .chart-container.large {
+            height: 400px;
+        }
+
+        /* 全宽图表 */
+        .chart-full {
+            grid-column: 1 / -1;
+        }
+
+        /* 加载 */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 15px;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 空状态 */
+        .empty-state {
+            background: white;
+            padding: 60px 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .empty-state .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <h1>📈 趋势分析</h1>
+            <div class="nav-links">
+                <a href="/index.html">🏠 首页</a>
+                <a href="/dashboard.html">📊 统计</a>
+                <a href="/compare.html">⚖️ 对比</a>
+            </div>
+        </div>
+
+        <!-- 日期选择器 -->
+        <div class="date-selector">
+            <label>开始日期:</label>
+            <input type="date" v-model="startDate" class="date-input">
+            <label>结束日期:</label>
+            <input type="date" v-model="endDate" class="date-input">
+            <button class="btn btn-primary" @click="loadTrends">🔍 分析趋势</button>
+            <button class="btn btn-secondary" @click="setLastWeek">最近7天</button>
+            <button class="btn btn-secondary" @click="setLastMonth">最近30天</button>
+        </div>
+
+        <!-- 加载状态 -->
+        <div v-if="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>正在分析数据...</p>
+        </div>
+
+        <!-- 趋势数据 -->
+        <div v-show="!loading && trendsData">
+            <!-- 总体统计 -->
+            <div class="overall-stats">
+                <div class="stat-card">
+                    <div class="icon">🎮</div>
+                    <div class="value">{{ trendsData.overall.totalGames }}</div>
+                    <div class="label">总棋局数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">🎯</div>
+                    <div class="value">{{ trendsData.overall.avgAccuracy.toFixed(1) }}%</div>
+                    <div class="label">平均精准度</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">🏆</div>
+                    <div class="value">{{ trendsData.overall.overallWinRate.toFixed(1) }}%</div>
+                    <div class="label">总胜率</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">✨</div>
+                    <div class="value">{{ trendsData.overall.totalBrilliantMoves }}</div>
+                    <div class="label">妙手总数</div>
+                </div>
+            </div>
+
+            <!-- 图表 -->
+            <div class="charts-grid">
+                <!-- 精准度趋势 -->
+                <div class="chart-card chart-full">
+                    <h2>📊 精准度与胜率趋势</h2>
+                    <div id="accuracyChart" class="chart-container large"></div>
+                </div>
+
+                <!-- 失误趋势 -->
+                <div class="chart-card">
+                    <h2>⚠️ 失误类型趋势</h2>
+                    <div id="errorsChart" class="chart-container"></div>
+                </div>
+
+                <!-- 棋局数量 -->
+                <div class="chart-card">
+                    <h2>🎮 每日棋局数量</h2>
+                    <div id="gamesChart" class="chart-container"></div>
+                </div>
+
+                <!-- 开局偏好 -->
+                <div class="chart-card">
+                    <h2>♟️ 开局偏好 Top 10</h2>
+                    <div id="openingsChart" class="chart-container"></div>
+                </div>
+
+                <!-- 综合雷达图 -->
+                <div class="chart-card">
+                    <h2>🎯 综合表现雷达图</h2>
+                    <div id="radarChart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div v-else class="empty-state">
+            <div class="icon">📈</div>
+            <h3>选择日期范围查看趋势</h3>
+            <p>分析您的棋局数据，发现进步的轨迹</p>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        const app = createApp({
+            data() {
+                return {
+                    userId: 1,
+                    startDate: '',
+                    endDate: '',
+                    loading: false,
+                    trendsData: null,
+                    charts: {
+                        accuracy: null,
+                        errors: null,
+                        games: null,
+                        openings: null,
+                        radar: null
+                    }
+                }
+            },
+            mounted() {
+                console.log('🚀 Vue mounted, 设置日期...');
+                this.setLastWeek();
+            },
+            watch: {
+                trendsData: {
+                    handler(newValue, oldValue) {
+                        console.log('👀 Watch 触发! oldValue:', oldValue, 'newValue:', newValue);
+                        if (newValue && newValue.timeline && newValue.timeline.length > 0) {
+                            console.log('✅ 数据有效,准备初始化图表');
+                            this.$nextTick(() => {
+                                console.log('🔄 $nextTick 执行');
+                                setTimeout(() => {
+                                    console.log('⏰ setTimeout 执行,开始初始化图表');
+                                    this.initializeAllCharts();
+                                }, 300);
+                            });
+                        } else {
+                            console.warn('⚠️ 数据无效或为空');
+                        }
+                    },
+                    deep: true
+                }
+            },
+            methods: {
+                setLastWeek() {
+                    const today = new Date();
+                    const lastWeek = new Date(today);
+                    lastWeek.setDate(today.getDate() - 7);
+                    this.endDate = this.formatDate(today);
+                    this.startDate = this.formatDate(lastWeek);
+                },
+
+                setLastMonth() {
+                    const today = new Date();
+                    const lastMonth = new Date(today);
+                    lastMonth.setDate(today.getDate() - 30);
+                    this.endDate = this.formatDate(today);
+                    this.startDate = this.formatDate(lastMonth);
+                },
+
+                formatDate(date) {
+                    return date.toISOString().split('T')[0];
+                },
+
+                async loadTrends() {
+                    if (!this.startDate || !this.endDate) {
+                        alert('请选择日期范围');
+                        return;
+                    }
+
+                    this.loading = true;
+                    try {
+                        const response = await fetch(
+                            `/api/trends?userId=${this.userId}&startDate=${this.startDate}&endDate=${this.endDate}`
+                        );
+                        
+                        if (response.ok) {
+                            this.trendsData = await response.json();
+                            console.log('✅ 趋势数据加载成功:', this.trendsData);
+                            // watch 会自动监听 trendsData 变化并初始化图表
+                        } else {
+                            alert('加载趋势数据失败');
+                        }
+                    } catch (error) {
+                        console.error('❌ 加载趋势数据错误:', error);
+                        alert('加载趋势数据时发生错误');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                initializeAllCharts() {
+                    console.log('🎨 initializeAllCharts 被调用');
+                    
+                    if (!this.trendsData || !this.trendsData.timeline || this.trendsData.timeline.length === 0) {
+                        console.warn('⚠️ 没有时间线数据,跳过图表初始化');
+                        return;
+                    }
+                    
+                    console.log('📊 开始初始化各个图表...');
+                    this.initAccuracyChart();
+                    this.initErrorsChart();
+                    this.initGamesChart();
+                    this.initOpeningsChart();
+                    this.initRadarChart();
+                    console.log('✅ 所有图表初始化完成');
+                },
+
+                initAccuracyChart() {
+                    const chartDom = document.getElementById('accuracyChart');
+                    if (!chartDom) {
+                        console.error('accuracyChart element not found');
+                        return;
+                    }
+                    
+                    if (this.charts.accuracy) {
+                        this.charts.accuracy.dispose();
+                    }
+                    this.charts.accuracy = echarts.init(chartDom);
+
+                    const dates = this.trendsData.timeline.map(d => d.date);
+                    const accuracy = this.trendsData.timeline.map(d => d.avgAccuracy || 0);
+                    const winRate = this.trendsData.timeline.map(d => d.winRate || 0);
+
+                    const option = {
+                        tooltip: {
+                            trigger: 'axis'
+                        },
+                        legend: {
+                            data: ['精准度', '胜率']
+                        },
+                        grid: {
+                            left: '3%',
+                            right: '4%',
+                            bottom: '3%',
+                            containLabel: true
+                        },
+                        xAxis: {
+                            type: 'category',
+                            boundaryGap: false,
+                            data: dates
+                        },
+                        yAxis: {
+                            type: 'value',
+                            axisLabel: {
+                                formatter: '{value}%'
+                            }
+                        },
+                        series: [
+                            {
+                                name: '精准度',
+                                type: 'line',
+                                data: accuracy,
+                                smooth: true,
+                                lineStyle: {
+                                    color: '#667eea',
+                                    width: 3
+                                },
+                                itemStyle: {
+                                    color: '#667eea'
+                                },
+                                areaStyle: {
+                                    color: {
+                                        type: 'linear',
+                                        x: 0,
+                                        y: 0,
+                                        x2: 0,
+                                        y2: 1,
+                                        colorStops: [
+                                            { offset: 0, color: 'rgba(102, 126, 234, 0.3)' },
+                                            { offset: 1, color: 'rgba(102, 126, 234, 0.05)' }
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                name: '胜率',
+                                type: 'line',
+                                data: winRate,
+                                smooth: true,
+                                lineStyle: {
+                                    color: '#43e97b',
+                                    width: 3
+                                },
+                                itemStyle: {
+                                    color: '#43e97b'
+                                }
+                            }
+                        ]
+                    };
+
+                    this.charts.accuracy.setOption(option);
+                },
+
+                initErrorsChart() {
+                    const chartDom = document.getElementById('errorsChart');
+                    if (!chartDom) {
+                        console.error('errorsChart element not found');
+                        return;
+                    }
+                    
+                    if (this.charts.errors) {
+                        this.charts.errors.dispose();
+                    }
+                    this.charts.errors = echarts.init(chartDom);
+
+                    const dates = this.trendsData.timeline.map(d => d.date);
+                    const blunders = this.trendsData.timeline.map(d => d.blunders || 0);
+                    const mistakes = this.trendsData.timeline.map(d => d.mistakes || 0);
+                    const inaccuracies = this.trendsData.timeline.map(d => d.inaccuracies || 0);
+
+                    const option = {
+                        tooltip: {
+                            trigger: 'axis'
+                        },
+                        legend: {
+                            data: ['漏着', '失误', '不精确']
+                        },
+                        grid: {
+                            left: '3%',
+                            right: '4%',
+                            bottom: '3%',
+                            containLabel: true
+                        },
+                        xAxis: {
+                            type: 'category',
+                            data: dates
+                        },
+                        yAxis: {
+                            type: 'value'
+                        },
+                        series: [
+                            {
+                                name: '漏着',
+                                type: 'bar',
+                                data: blunders,
+                                itemStyle: { color: '#ff6b6b' }
+                            },
+                            {
+                                name: '失误',
+                                type: 'bar',
+                                data: mistakes,
+                                itemStyle: { color: '#ffa502' }
+                            },
+                            {
+                                name: '不精确',
+                                type: 'bar',
+                                data: inaccuracies,
+                                itemStyle: { color: '#ffd93d' }
+                            }
+                        ]
+                    };
+
+                    this.charts.errors.setOption(option);
+                },
+
+                initGamesChart() {
+                    const chartDom = document.getElementById('gamesChart');
+                    if (!chartDom) {
+                        console.error('gamesChart element not found');
+                        return;
+                    }
+                    
+                    if (this.charts.games) {
+                        this.charts.games.dispose();
+                    }
+                    this.charts.games = echarts.init(chartDom);
+
+                    const dates = this.trendsData.timeline.map(d => d.date);
+                    const games = this.trendsData.timeline.map(d => d.totalGames || 0);
+
+                    const option = {
+                        tooltip: {
+                            trigger: 'axis'
+                        },
+                        grid: {
+                            left: '3%',
+                            right: '4%',
+                            bottom: '3%',
+                            containLabel: true
+                        },
+                        xAxis: {
+                            type: 'category',
+                            data: dates
+                        },
+                        yAxis: {
+                            type: 'value'
+                        },
+                        series: [
+                            {
+                                name: '棋局数量',
+                                type: 'bar',
+                                data: games,
+                                itemStyle: {
+                                    color: {
+                                        type: 'linear',
+                                        x: 0,
+                                        y: 0,
+                                        x2: 0,
+                                        y2: 1,
+                                        colorStops: [
+                                            { offset: 0, color: '#667eea' },
+                                            { offset: 1, color: '#764ba2' }
+                                        ]
+                                    }
+                                }
+                            }
+                        ]
+                    };
+
+                    this.charts.games.setOption(option);
+                },
+
+                initOpeningsChart() {
+                    const chartDom = document.getElementById('openingsChart');
+                    if (!chartDom) {
+                        console.error('openingsChart element not found');
+                        return;
+                    }
+                    
+                    if (this.charts.openings) {
+                        this.charts.openings.dispose();
+                    }
+                    this.charts.openings = echarts.init(chartDom);
+
+                    // 检查是否有开局数据
+                    if (!this.trendsData.openings || this.trendsData.openings.length === 0) {
+                        const option = {
+                            title: {
+                                text: '暂无开局数据',
+                                left: 'center',
+                                top: 'center',
+                                textStyle: {
+                                    color: '#999',
+                                    fontSize: 14
+                                }
+                            }
+                        };
+                        this.charts.openings.setOption(option);
+                        return;
+                    }
+
+                    const data = this.trendsData.openings.map(o => ({
+                        value: o.count,
+                        name: o.openingName + ` (${o.winRate.toFixed(0)}% 胜率)`
+                    }));
+
+                    const option = {
+                        tooltip: {
+                            trigger: 'item',
+                            formatter: '{b}: {c} 局 ({d}%)'
+                        },
+                        legend: {
+                            orient: 'vertical',
+                            left: 'left',
+                            type: 'scroll',
+                            pageButtonItemGap: 5
+                        },
+                        series: [
+                            {
+                                type: 'pie',
+                                radius: '70%',
+                                center: ['60%', '50%'],
+                                data: data,
+                                emphasis: {
+                                    itemStyle: {
+                                        shadowBlur: 10,
+                                        shadowOffsetX: 0,
+                                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                    }
+                                },
+                                label: {
+                                    show: true,
+                                    formatter: '{d}%'
+                                }
+                            }
+                        ]
+                    };
+
+                    this.charts.openings.setOption(option);
+                },
+
+                initRadarChart() {
+                    const chartDom = document.getElementById('radarChart');
+                    if (!chartDom) {
+                        console.error('radarChart element not found');
+                        return;
+                    }
+                    
+                    if (this.charts.radar) {
+                        this.charts.radar.dispose();
+                    }
+                    this.charts.radar = echarts.init(chartDom);
+
+                    const overall = this.trendsData.overall;
+                    const maxGames = Math.max(overall.totalGames, 100);
+                    const maxErrors = Math.max(overall.totalBlunders + overall.totalMistakes, 50);
+
+                    const option = {
+                        tooltip: {},
+                        radar: {
+                            indicator: [
+                                { name: '精准度', max: 100 },
+                                { name: '胜率', max: 100 },
+                                { name: '棋局数', max: maxGames },
+                                { name: '妙手', max: Math.max(overall.totalBrilliantMoves, 20) },
+                                { name: '失误少', max: maxErrors }
+                            ]
+                        },
+                        series: [
+                            {
+                                type: 'radar',
+                                data: [
+                                    {
+                                        value: [
+                                            overall.avgAccuracy,
+                                            overall.overallWinRate,
+                                            overall.totalGames,
+                                            overall.totalBrilliantMoves,
+                                            maxErrors - (overall.totalBlunders + overall.totalMistakes)
+                                        ],
+                                        name: '综合表现',
+                                        areaStyle: {
+                                            color: 'rgba(102, 126, 234, 0.3)'
+                                        },
+                                        lineStyle: {
+                                            color: '#667eea',
+                                            width: 2
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    };
+
+                    this.charts.radar.setOption(option);
+                }
+            }
+        });
+        
+        const vm = app.mount('#app');
+        console.log('✅ Vue app 已挂载:', vm);
+    </script>
+</body>
+</html>

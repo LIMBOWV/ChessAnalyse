@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>失误统计 - Stockfish 分析系统</title>
+    <script src="vendor/vue.global.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #app {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .value.blunder {
+            color: #f5222d;
+        }
+
+        .stat-card .value.mistake {
+            color: #faad14;
+        }
+
+        .stat-card .value.inaccuracy {
+            color: #ff7875;
+        }
+
+        .stat-card .value.total {
+            color: #667eea;
+        }
+
+        .filters-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .filters-container h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .filter-badges {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .filter-badge {
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid;
+        }
+
+        .filter-badge.blunder {
+            border-color: #f5222d;
+            color: #f5222d;
+        }
+
+        .filter-badge.blunder.active {
+            background: #f5222d;
+            color: white;
+        }
+
+        .filter-badge.mistake {
+            border-color: #faad14;
+            color: #faad14;
+        }
+
+        .filter-badge.mistake.active {
+            background: #faad14;
+            color: white;
+        }
+
+        .filter-badge.inaccuracy {
+            border-color: #ff7875;
+            color: #ff7875;
+        }
+
+        .filter-badge.inaccuracy.active {
+            background: #ff7875;
+            color: white;
+        }
+
+        .mistakes-list {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .mistakes-list h2 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .mistake-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid;
+            background: #fafafa;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .mistake-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .mistake-item.BLUNDER {
+            border-left-color: #f5222d;
+        }
+
+        .mistake-item.MISTAKE {
+            border-left-color: #faad14;
+        }
+
+        .mistake-item.INACCURACY {
+            border-left-color: #ff7875;
+        }
+
+        .mistake-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .mistake-type {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .mistake-type.BLUNDER {
+            background: #f5222d;
+        }
+
+        .mistake-type.MISTAKE {
+            background: #faad14;
+        }
+
+        .mistake-type.INACCURACY {
+            background: #ff7875;
+        }
+
+        .mistake-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .mistake-info .label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .mistake-details {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 13px;
+        }
+
+        .mistake-details strong {
+            color: #333;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #999;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .error {
+            background: #ff4444;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .stats-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <h1>⚠️ 失误统计</h1>
+            <div class="nav-buttons">
+                <button class="btn btn-primary" @click="refreshData">🔄 刷新</button>
+                <button class="btn btn-secondary" @click="goToDashboard">Dashboard</button>
+                <button class="btn btn-secondary" @click="goToOpenings">开局分析</button>
+                <button class="btn btn-secondary" @click="goToHome">返回首页</button>
+            </div>
+        </div>
+
+        <div v-if="loading" class="loading">
+            ⏳ 加载中...
+        </div>
+
+        <div v-if="error" class="error">
+            ❌ {{ error }}
+        </div>
+
+        <div v-if="!loading && mistakeData">
+            <!-- 统计摘要 -->
+            <div class="stats-summary">
+                <div class="stat-card">
+                    <h3>总失误数</h3>
+                    <div class="value total">{{ mistakeData.totalMistakes }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>漏着 (Blunder)</h3>
+                    <div class="value blunder">{{ mistakeData.totalBlunders }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>失误 (Mistake)</h3>
+                    <div class="value mistake">{{ mistakeData.totalMistakesCount }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>不精准 (Inaccuracy)</h3>
+                    <div class="value inaccuracy">{{ mistakeData.totalInaccuracies }}</div>
+                </div>
+            </div>
+
+            <!-- 过滤器 -->
+            <div class="filters-container">
+                <h2>🔍 筛选条件</h2>
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>搜索</label>
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="搜索对局ID、走法..."
+                            style="width: 250px;"
+                        >
+                    </div>
+                    <div class="filter-group">
+                        <label>排序方式</label>
+                        <select v-model="sortBy">
+                            <option value="moveNumber">按步数</option>
+                            <option value="evaluationDrop">按评分损失</option>
+                            <option value="gameId">按对局ID</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-badges">
+                    <div
+                        class="filter-badge blunder"
+                        :class="{ active: typeFilter.includes('BLUNDER') }"
+                        @click="toggleTypeFilter('BLUNDER')"
+                    >
+                        漏着 ({{ blunderCount }})
+                    </div>
+                    <div
+                        class="filter-badge mistake"
+                        :class="{ active: typeFilter.includes('MISTAKE') }"
+                        @click="toggleTypeFilter('MISTAKE')"
+                    >
+                        失误 ({{ mistakeCount }})
+                    </div>
+                    <div
+                        class="filter-badge inaccuracy"
+                        :class="{ active: typeFilter.includes('INACCURACY') }"
+                        @click="toggleTypeFilter('INACCURACY')"
+                    >
+                        不精准 ({{ inaccuracyCount }})
+                    </div>
+                </div>
+            </div>
+
+            <!-- 失误列表 -->
+            <div class="mistakes-list">
+                <h2>📋 失误详情列表 ({{ filteredMistakes.length }} 条)</h2>
+
+                <div v-if="filteredMistakes.length > 0">
+                    <div
+                        v-for="mistake in filteredMistakes"
+                        :key="`${mistake.gameId}-${mistake.moveNumber}`"
+                        class="mistake-item"
+                        :class="mistake.classification"
+                        @click="viewMistake(mistake)"
+                    >
+                        <div class="mistake-header">
+                            <span class="mistake-type" :class="mistake.classification">
+                                {{ getClassificationName(mistake.classification) }}
+                            </span>
+                            <span style="font-size: 12px; color: #999;">
+                                对局 #{{ mistake.gameId }} | 第 {{ mistake.moveNumber }} 步
+                            </span>
+                        </div>
+
+                        <div class="mistake-info">
+                            <div>
+                                <span class="label">实际走法:</span> {{ mistake.actualMove || 'N/A' }}
+                            </div>
+                            <div>
+                                <span class="label">最佳走法:</span> {{ mistake.bestMove || 'N/A' }}
+                            </div>
+                            <div>
+                                <span class="label">评分损失:</span>
+                                <span style="color: #f5222d; font-weight: bold;">
+                                    {{ mistake.evaluationDrop ? mistake.evaluationDrop.toFixed(2) : 'N/A' }}
+                                </span>
+                            </div>
+                            <div>
+                                <span class="label">当前评分:</span> {{ mistake.evaluation || 'N/A' }}
+                            </div>
+                        </div>
+
+                        <div v-if="mistake.position" class="mistake-details">
+                            <strong>局面 FEN:</strong> <code>{{ mistake.position }}</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-else class="empty-state">
+                    <p>😊 没有找到符合条件的失误</p>
+                    <small>尝试调整筛选条件</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    userId: 1,
+                    mistakeData: null,
+                    loading: true,
+                    error: null,
+                    searchQuery: '',
+                    typeFilter: ['BLUNDER', 'MISTAKE', 'INACCURACY'],
+                    sortBy: 'moveNumber'
+                };
+            },
+            computed: {
+                blunderCount() {
+                    return this.mistakeData ? this.mistakeData.totalBlunders : 0;
+                },
+                mistakeCount() {
+                    return this.mistakeData ? this.mistakeData.totalMistakesCount : 0;
+                },
+                inaccuracyCount() {
+                    return this.mistakeData ? this.mistakeData.totalInaccuracies : 0;
+                },
+                filteredMistakes() {
+                    if (!this.mistakeData || !this.mistakeData.mistakes) return [];
+
+                    let mistakes = this.mistakeData.mistakes.filter(mistake => {
+                        // 类型过滤
+                        if (!this.typeFilter.includes(mistake.classification)) {
+                            return false;
+                        }
+
+                        // 搜索过滤
+                        if (this.searchQuery) {
+                            const query = this.searchQuery.toLowerCase();
+                            const searchText = `${mistake.gameId} ${mistake.actualMove} ${mistake.bestMove}`.toLowerCase();
+                            if (!searchText.includes(query)) {
+                                return false;
+                            }
+                        }
+
+                        return true;
+                    });
+
+                    // 排序
+                    mistakes.sort((a, b) => {
+                        let valA = a[this.sortBy] || 0;
+                        let valB = b[this.sortBy] || 0;
+                        return valB - valA; // 降序
+                    });
+
+                    return mistakes;
+                }
+            },
+            mounted() {
+                this.loadMistakes();
+            },
+            methods: {
+                async loadMistakes() {
+                    this.loading = true;
+                    this.error = null;
+
+                    try {
+                        const response = await fetch(`/api/analysis/mistakes/${this.userId}`);
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+
+                        this.mistakeData = await response.json();
+                    } catch (err) {
+                        this.error = `加载失误数据失败: ${err.message}`;
+                        console.error(err);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                toggleTypeFilter(type) {
+                    const index = this.typeFilter.indexOf(type);
+                    if (index > -1) {
+                        this.typeFilter.splice(index, 1);
+                    } else {
+                        this.typeFilter.push(type);
+                    }
+                },
+
+                getClassificationName(classification) {
+                    const names = {
+                        'BLUNDER': '漏着',
+                        'MISTAKE': '失误',
+                        'INACCURACY': '不精准'
+                    };
+                    return names[classification] || classification;
+                },
+
+                viewMistake(mistake) {
+                    // TODO: 跳转到棋局详情页并定位到失误步骤
+                    alert(`查看对局 #${mistake.gameId} 的第 ${mistake.moveNumber} 步失误\n\n实际走法: ${mistake.actualMove}\n最佳走法: ${mistake.bestMove}\n评分损失: ${mistake.evaluationDrop?.toFixed(2)}`);
+                    // 未来实现: window.location.href = `/game/${mistake.gameId}?move=${mistake.moveNumber}`;
+                },
+
+                async refreshData() {
+                    await this.loadMistakes();
+                },
+
+                goToDashboard() {
+                    window.location.href = '/dashboard.html';
+                },
+
+                goToOpenings() {
+                    window.location.href = '/openings.html';
+                },
+
+                goToHome() {
+                    window.location.href = '/index.html';
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
+

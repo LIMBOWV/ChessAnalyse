@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趋势分析调试版</title>
+    <script src="/vendor/vue.global.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <h1>趋势分析 - 调试版</h1>
+            
+            <div v-if="loading">
+                <div class="loading">加载中...</div>
+            </div>
+            
+            <div v-else-if="!trendsData">
+                <p>请选择日期范围</p>
+            </div>
+            
+            <div v-else>
+                <h2>数据已加载</h2>
+                <p>总局数: <span v-text="stats.totalGames"></span></p>
+                <p>平均精准度: <span v-text="stats.avgAccuracy"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log('🟢 开始加载 Vue 应用...');
+        
+        const { createApp } = Vue;
+        
+        createApp({
+            data() {
+                return {
+                    loading: false,
+                    trendsData: null
+                };
+            },
+            computed: {
+                stats() {
+                    if (!this.trendsData || !this.trendsData.overall) {
+                        return {
+                            totalGames: 0,
+                            avgAccuracy: '0.0%'
+                        };
+                    }
+                    const o = this.trendsData.overall;
+                    return {
+                        totalGames: o.totalGames || 0,
+                        avgAccuracy: (o.avgAccuracy || 0).toFixed(1) + '%'
+                    };
+                }
+            },
+            mounted() {
+                console.log('✅ Vue 应用已挂载');
+                // 模拟数据
+                this.trendsData = {
+                    overall: {
+                        totalGames: 100,
+                        avgAccuracy: 85.5
+                    }
+                };
+            }
+        }).mount('#app');
+        
+        console.log('✅ Vue 应用启动完成');
+    </script>
+</body>
+</html>

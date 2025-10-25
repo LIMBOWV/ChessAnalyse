@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📚 局面收藏 - Stockfish 分析系统</title>
+    <script src="/vendor/vue.global.js"></script>
+    <script src="/vendor/chess.js"></script>
+    <link rel="stylesheet" href="/vendor/chessboard-1.0.0.min.css">
+    <script src="/vendor/jquery-3.6.0.min.js"></script>
+    <script src="/vendor/chessboard-1.0.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 头部 */
+        .header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-links a {
+            color: #667eea;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* 统计卡片 */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-card .label {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        /* 筛选区域 */
+        .filter-bar {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-bar input, .filter-bar select {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .filter-bar input:focus, .filter-bar select:focus {
+            border-color: #667eea;
+        }
+
+        .filter-bar input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-bar select {
+            min-width: 150px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+        }
+
+        /* 书签网格 */
+        .bookmarks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .bookmark-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .bookmark-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .bookmark-header {
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .bookmark-header h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bookmark-header .meta {
+            font-size: 13px;
+            opacity: 0.9;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .chessboard-container {
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            background: #f5f5f5;
+        }
+
+        .chessboard-wrapper {
+            width: 280px;
+        }
+
+        .bookmark-body {
+            padding: 15px;
+        }
+
+        .bookmark-note {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            max-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bookmark-note.empty {
+            color: #999;
+            font-style: italic;
+        }
+
+        .bookmark-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .bookmark-actions button {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-view {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: #5568d3;
+        }
+
+        .btn-edit {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-edit:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-delete {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #ee5a52;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            background: white;
+            padding: 60px 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .empty-state .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 120px;
+            outline: none;
+        }
+
+        .form-group textarea:focus {
+            border-color: #667eea;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-cancel {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-cancel:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-save {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #5568d3;
+        }
+
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .nav-links {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .bookmarks-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-bar input, .filter-bar select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <h1>📚 局面收藏</h1>
+            <div class="nav-links">
+                <a href="/index.html">🏠 首页</a>
+                <a href="/dashboard.html">📊 统计</a>
+                <a href="/tasks.html">📝 任务</a>
+                <a href="/settings.html">⚙️ 设置</a>
+            </div>
+        </div>
+
+        <!-- 加载状态 -->
+        <div v-if="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>加载书签中...</p>
+        </div>
+
+        <template v-else>
+            <!-- 统计卡片 -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="label">📚 总收藏</div>
+                    <div class="value">{{ bookmarks.length }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">🎯 今日新增</div>
+                    <div class="value">{{ todayBookmarks }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">📅 本周新增</div>
+                    <div class="value">{{ weekBookmarks }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">♟️ 收藏棋局</div>
+                    <div class="value">{{ uniqueGames }}</div>
+                </div>
+            </div>
+
+            <!-- 筛选栏 -->
+            <div class="filter-bar">
+                <input type="text" v-model="searchQuery" placeholder="🔍 搜索棋局标题、备注...">
+                <select v-model="sortBy">
+                    <option value="date-desc">按日期 (新→旧)</option>
+                    <option value="date-asc">按日期 (旧→新)</option>
+                    <option value="move-asc">按步数 (少→多)</option>
+                    <option value="move-desc">按步数 (多→少)</option>
+                    <option value="game">按棋局分组</option>
+                </select>
+                <button class="btn btn-primary" @click="refreshBookmarks">
+                    🔄 刷新
+                </button>
+            </div>
+
+            <!-- 书签网格 -->
+            <div v-if="filteredBookmarks.length > 0" class="bookmarks-grid">
+                <div v-for="bookmark in filteredBookmarks" :key="bookmark.id" class="bookmark-card">
+                    <div class="bookmark-header">
+                        <h3>{{ bookmark.gameTitle || '未知棋局' }}</h3>
+                        <div class="meta">
+                            <span>步数: {{ bookmark.moveNumber }}</span>
+                            <span>{{ formatDate(bookmark.createdAt) }}</span>
+                        </div>
+                    </div>
+                    <div class="chessboard-container">
+                        <div class="chessboard-wrapper">
+                            <div :id="'board-' + bookmark.id" class="chessboard"></div>
+                        </div>
+                    </div>
+                    <div class="bookmark-body">
+                        <div :class="['bookmark-note', !bookmark.note ? 'empty' : '']">
+                            {{ bookmark.note || '暂无备注' }}
+                        </div>
+                        <div class="bookmark-actions">
+                            <button class="btn-view" @click="viewGame(bookmark.gameId)">
+                                👁️ 查看棋局
+                            </button>
+                            <button class="btn-edit" @click="editBookmark(bookmark)">
+                                ✏️ 编辑
+                            </button>
+                            <button class="btn-delete" @click="deleteBookmark(bookmark.id)">
+                                🗑️ 删除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 空状态 -->
+            <div v-else class="empty-state">
+                <div class="icon">📚</div>
+                <h3>还没有收藏任何局面</h3>
+                <p>在复盘分析页面中，点击"收藏局面"按钮来添加关键位置</p>
+                <a href="/index.html" class="btn btn-primary">去上传棋谱</a>
+            </div>
+        </template>
+
+        <!-- 编辑模态框 -->
+        <div :class="['modal', showEditModal ? 'show' : '']" @click.self="closeEditModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>✏️ 编辑备注</h2>
+                    <button class="close-btn" @click="closeEditModal">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>备注内容</label>
+                        <textarea v-model="editingNote" placeholder="记录这个局面的关键点、战术意图、学习心得..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-cancel" @click="closeEditModal">取消</button>
+                    <button class="btn btn-save" @click="saveNote">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    userId: 1,  // 当前用户ID
+                    loading: false,
+                    bookmarks: [],
+                    searchQuery: '',
+                    sortBy: 'date-desc',
+                    showEditModal: false,
+                    editingBookmark: null,
+                    editingNote: '',
+                    boards: {}  // 存储棋盘实例
+                }
+            },
+            computed: {
+                // 过滤和排序后的书签
+                filteredBookmarks() {
+                    let result = [...this.bookmarks];
+
+                    // 搜索过滤
+                    if (this.searchQuery) {
+                        const query = this.searchQuery.toLowerCase();
+                        result = result.filter(b => 
+                            (b.gameTitle && b.gameTitle.toLowerCase().includes(query)) ||
+                            (b.note && b.note.toLowerCase().includes(query))
+                        );
+                    }
+
+                    // 排序
+                    switch (this.sortBy) {
+                        case 'date-desc':
+                            result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                            break;
+                        case 'date-asc':
+                            result.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                            break;
+                        case 'move-asc':
+                            result.sort((a, b) => a.moveNumber - b.moveNumber);
+                            break;
+                        case 'move-desc':
+                            result.sort((a, b) => b.moveNumber - a.moveNumber);
+                            break;
+                        case 'game':
+                            result.sort((a, b) => {
+                                if (a.gameId !== b.gameId) return a.gameId - b.gameId;
+                                return a.moveNumber - b.moveNumber;
+                            });
+                            break;
+                    }
+
+                    return result;
+                },
+
+                // 今日新增书签数
+                todayBookmarks() {
+                    const today = new Date().toDateString();
+                    return this.bookmarks.filter(b => 
+                        new Date(b.createdAt).toDateString() === today
+                    ).length;
+                },
+
+                // 本周新增书签数
+                weekBookmarks() {
+                    const weekAgo = new Date();
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    return this.bookmarks.filter(b => 
+                        new Date(b.createdAt) >= weekAgo
+                    ).length;
+                },
+
+                // 收藏的不同棋局数
+                uniqueGames() {
+                    const gameIds = new Set(this.bookmarks.map(b => b.gameId));
+                    return gameIds.size;
+                }
+            },
+            mounted() {
+                this.loadBookmarks();
+            },
+            methods: {
+                // 加载书签列表
+                async loadBookmarks() {
+                    this.loading = true;
+                    try {
+                        const response = await fetch(`/api/bookmarks?userId=${this.userId}`);
+                        if (response.ok) {
+                            this.bookmarks = await response.json();
+                            // 延迟初始化棋盘，等待DOM渲染
+                            setTimeout(() => {
+                                this.initializeBoards();
+                            }, 100);
+                        } else {
+                            alert('加载书签失败');
+                        }
+                    } catch (error) {
+                        console.error('加载书签错误:', error);
+                        alert('加载书签时发生错误');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                // 初始化所有棋盘
+                initializeBoards() {
+                    this.filteredBookmarks.forEach(bookmark => {
+                        const boardId = `board-${bookmark.id}`;
+                        if (document.getElementById(boardId) && !this.boards[bookmark.id]) {
+                            try {
+                                this.boards[bookmark.id] = Chessboard(boardId, {
+                                    position: bookmark.fenPosition,
+                                    draggable: false,
+                                    pieceTheme: '/vendor/img/chesspieces/wikipedia/{piece}.png'
+                                });
+                            } catch (error) {
+                                console.error('初始化棋盘失败:', error);
+                            }
+                        }
+                    });
+                },
+
+                // 刷新书签
+                async refreshBookmarks() {
+                    await this.loadBookmarks();
+                },
+
+                // 编辑书签
+                editBookmark(bookmark) {
+                    this.editingBookmark = bookmark;
+                    this.editingNote = bookmark.note || '';
+                    this.showEditModal = true;
+                },
+
+                // 关闭编辑模态框
+                closeEditModal() {
+                    this.showEditModal = false;
+                    this.editingBookmark = null;
+                    this.editingNote = '';
+                },
+
+                // 保存备注
+                async saveNote() {
+                    if (!this.editingBookmark) return;
+
+                    try {
+                        const response = await fetch(
+                            `/api/bookmarks/${this.editingBookmark.id}?userId=${this.userId}`,
+                            {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ note: this.editingNote })
+                            }
+                        );
+
+                        if (response.ok) {
+                            const updated = await response.json();
+                            // 更新本地数据
+                            const index = this.bookmarks.findIndex(b => b.id === updated.id);
+                            if (index !== -1) {
+                                this.bookmarks[index] = updated;
+                            }
+                            this.closeEditModal();
+                        } else {
+                            alert('保存失败');
+                        }
+                    } catch (error) {
+                        console.error('保存错误:', error);
+                        alert('保存时发生错误');
+                    }
+                },
+
+                // 删除书签
+                async deleteBookmark(bookmarkId) {
+                    if (!confirm('确定要删除这个收藏吗？')) return;
+
+                    try {
+                        const response = await fetch(
+                            `/api/bookmarks/${bookmarkId}?userId=${this.userId}`,
+                            { method: 'DELETE' }
+                        );
+
+                        if (response.ok) {
+                            // 从列表中移除
+                            this.bookmarks = this.bookmarks.filter(b => b.id !== bookmarkId);
+                            // 销毁棋盘实例
+                            if (this.boards[bookmarkId]) {
+                                delete this.boards[bookmarkId];
+                            }
+                        } else {
+                            alert('删除失败');
+                        }
+                    } catch (error) {
+                        console.error('删除错误:', error);
+                        alert('删除时发生错误');
+                    }
+                },
+
+                // 查看棋局详情
+                viewGame(gameId) {
+                    window.location.href = `/game-detail.html?gameId=${gameId}`;
+                },
+
+                // 格式化日期
+                formatDate(dateString) {
+                    const date = new Date(dateString);
+                    const now = new Date();
+                    const diff = now - date;
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+                    if (days === 0) return '今天';
+                    if (days === 1) return '昨天';
+                    if (days < 7) return `${days}天前`;
+                    
+                    return date.toLocaleDateString('zh-CN', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    });
+                }
+            },
+            watch: {
+                // 监听筛选条件变化，重新初始化棋盘
+                filteredBookmarks() {
+                    this.$nextTick(() => {
+                        this.initializeBoards();
+                    });
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

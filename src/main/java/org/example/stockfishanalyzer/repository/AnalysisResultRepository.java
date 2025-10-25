@@ -1,6 +1,7 @@
 package org.example.stockfishanalyzer.repository;
 
 import org.example.stockfishanalyzer.entity.AnalysisResult;
+import org.example.stockfishanalyzer.enums.MoveClassification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -15,4 +16,9 @@ public interface AnalysisResultRepository extends JpaRepository<AnalysisResult, 
     Optional<AnalysisResult> findByGameIdAndMoveNumber(Long gameId, Integer moveNumber);
 
     boolean existsByGameId(Long gameId);
+
+    // 统计相关方法
+    Integer countByGameIdInAndMoveClassification(List<Long> gameIds, MoveClassification classification);
+
+    List<AnalysisResult> findByGameIdInAndMoveClassification(List<Long> gameIds, MoveClassification classification);
 }

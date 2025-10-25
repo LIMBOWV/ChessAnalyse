@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户认证测试 - Stockfish Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            background: #e0e0e0;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result.success {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+        }
+
+        .result.error {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+
+        .token-display {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff3cd;
+            border-radius: 5px;
+            word-break: break-all;
+        }
+
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 用户认证系统测试</h1>
+            <p>测试注册、登录、获取用户信息等 API</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('register')">注册</div>
+            <div class="tab" onclick="switchTab('login')">登录</div>
+            <div class="tab" onclick="switchTab('profile')">个人信息</div>
+            <div class="tab" onclick="switchTab('validate')">验证 Token</div>
+        </div>
+
+        <div class="content">
+            <!-- 注册 Tab -->
+            <div id="register" class="tab-content active">
+                <div class="info">
+                    <strong>API:</strong> POST /api/auth/register<br>
+                    <strong>说明:</strong> 注册新用户，成功后返回 JWT Token
+                </div>
+                <form onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label for="reg-username">用户名</label>
+                        <input type="text" id="reg-username" required minlength="3" maxlength="50" placeholder="至少 3 个字符">
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-email">邮箱</label>
+                        <input type="email" id="reg-email" required placeholder="example@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">密码</label>
+                        <input type="password" id="reg-password" required minlength="6" placeholder="至少 6 个字符">
+                    </div>
+                    <button type="submit">注册</button>
+                </form>
+                <div id="register-result"></div>
+            </div>
+
+            <!-- 登录 Tab -->
+            <div id="login" class="tab-content">
+                <div class="info">
+                    <strong>API:</strong> POST /api/auth/login<br>
+                    <strong>说明:</strong> 使用用户名或邮箱登录，返回 JWT Token
+                </div>
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="login-username">用户名或邮箱</label>
+                        <input type="text" id="login-username" required placeholder="用户名或邮箱">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">密码</label>
+                        <input type="password" id="login-password" required placeholder="密码">
+                    </div>
+                    <button type="submit">登录</button>
+                </form>
+                <div id="login-result"></div>
+            </div>
+
+            <!-- 个人信息 Tab -->
+            <div id="profile" class="tab-content">
+                <div class="info">
+                    <strong>API:</strong> GET /api/auth/profile<br>
+                    <strong>说明:</strong> 获取用户信息（需要 Token）
+                </div>
+                <form onsubmit="handleGetProfile(event)">
+                    <div class="form-group">
+                        <label for="profile-token">JWT Token</label>
+                        <input type="text" id="profile-token" required placeholder="从注册或登录响应中复制 Token">
+                    </div>
+                    <button type="submit">获取个人信息</button>
+                </form>
+                <div id="profile-result"></div>
+            </div>
+
+            <!-- 验证 Token Tab -->
+            <div id="validate" class="tab-content">
+                <div class="info">
+                    <strong>API:</strong> POST /api/auth/validate<br>
+                    <strong>说明:</strong> 验证 Token 是否有效
+                </div>
+                <form onsubmit="handleValidateToken(event)">
+                    <div class="form-group">
+                        <label for="validate-token">JWT Token</label>
+                        <input type="text" id="validate-token" required placeholder="从注册或登录响应中复制 Token">
+                    </div>
+                    <button type="submit">验证 Token</button>
+                </form>
+                <div id="validate-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:9090/api/auth';
+
+        function switchTab(tabName) {
+            // 切换 tab 样式
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 切换内容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function showResult(elementId, data, isSuccess) {
+            const resultDiv = document.getElementById(elementId);
+            resultDiv.className = 'result ' + (isSuccess ? 'success' : 'error');
+            resultDiv.innerHTML = JSON.stringify(data, null, 2);
+
+            // 如果有 token，额外显示
+            if (data.token) {
+                resultDiv.innerHTML += '\n\n<div class="token-display"><strong>Token:</strong><br>' + data.token + '</div>';
+            }
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                const data = await response.json();
+                showResult('register-result', data, response.ok);
+            } catch (error) {
+                showResult('register-result', { error: error.message }, false);
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const usernameOrEmail = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usernameOrEmail, password })
+                });
+
+                const data = await response.json();
+                showResult('login-result', data, response.ok);
+            } catch (error) {
+                showResult('login-result', { error: error.message }, false);
+            }
+        }
+
+        async function handleGetProfile(event) {
+            event.preventDefault();
+            const token = document.getElementById('profile-token').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/profile`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                showResult('profile-result', data, response.ok);
+            } catch (error) {
+                showResult('profile-result', { error: error.message }, false);
+            }
+        }
+
+        async function handleValidateToken(event) {
+            event.preventDefault();
+            const token = document.getElementById('validate-token').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/validate`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                showResult('validate-result', data, response.ok);
+            } catch (error) {
+                showResult('validate-result', { error: error.message }, false);
+            }
+        }
+    </script>
+</body>
+</html>
+

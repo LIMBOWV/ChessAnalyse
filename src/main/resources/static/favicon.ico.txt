@@ -1,0 +1,8 @@
+# 创建一个简单的 favicon.ico 来消除 404 错误
+
+你可以：
+1. 从 https://favicon.io/ 生成一个图标
+2. 或使用任何 .ico 文件
+3. 放到 src/main/resources/static/favicon.ico
+
+这会消除 "Failed to load resource: 404" 的警告
