@@ -13,7 +13,10 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "tbl_game_pgn", indexes = {
-    @Index(name = "idx_user_id", columnList = "user_id")
+    @Index(name = "idx_user_id", columnList = "user_id"),
+    @Index(name = "idx_uploaded_at", columnList = "uploaded_at"),
+    @Index(name = "idx_user_uploaded", columnList = "user_id, uploaded_at"),
+    @Index(name = "idx_analysis_status", columnList = "analysis_status")
 })
 @Data
 @NoArgsConstructor

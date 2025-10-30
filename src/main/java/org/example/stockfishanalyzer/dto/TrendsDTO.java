@@ -1,6 +1,5 @@
 package org.example.stockfishanalyzer.dto;
 
-import java.time.LocalDate;
 import java.util.List;
 
 /**

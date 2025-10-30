@@ -11,6 +11,10 @@ import org.example.stockfishanalyzer.enums.MoveClassification;
  */
 @Entity
 @Table(name = "tbl_analysis_result",
+       indexes = {
+           @Index(name = "idx_game_id", columnList = "game_id"),
+           @Index(name = "idx_game_move", columnList = "game_id, move_number")
+       },
        uniqueConstraints = @UniqueConstraint(name = "uk_game_move", columnNames = {"game_id", "move_number"}))
 @Data
 @NoArgsConstructor

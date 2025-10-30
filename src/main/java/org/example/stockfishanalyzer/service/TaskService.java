@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.example.stockfishanalyzer.dto.CreateTaskRequest;
 import org.example.stockfishanalyzer.dto.TaskDTO;
 import org.example.stockfishanalyzer.dto.TaskStatisticsDTO;
-import org.example.stockfishanalyzer.entity.GamePgn;
 import org.example.stockfishanalyzer.entity.Task;
 import org.example.stockfishanalyzer.repository.GamePgnRepository;
 import org.example.stockfishanalyzer.repository.TaskRepository;

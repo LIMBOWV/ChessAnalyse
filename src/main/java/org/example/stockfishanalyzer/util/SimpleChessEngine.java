@@ -1,9 +1,6 @@
 package org.example.stockfishanalyzer.util;
 
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.*;
 
 /**
  * 简化版国际象棋引擎
@@ -14,8 +11,10 @@ public class SimpleChessEngine {
 
     private char[][] board;
     private boolean whiteTurn;
-    private Set<String> castlingRights;
-    private String enPassantSquare;
+    // TODO: 未来版本支持王车易位
+    // private Set<String> castlingRights;
+    // TODO: 未来版本支持吃过路兵
+    // private String enPassantSquare;
 
     public SimpleChessEngine() {
         initBoard();
@@ -27,8 +26,8 @@ public class SimpleChessEngine {
     private void initBoard() {
         board = new char[8][8];
         whiteTurn = true;
-        castlingRights = new HashSet<>(Arrays.asList("K", "Q", "k", "q"));
-        enPassantSquare = "-";
+        // castlingRights = new HashSet<>(Arrays.asList("K", "Q", "k", "q"));
+        // enPassantSquare = "-";
 
         // 初始化棋盘
         for (int i = 0; i < 8; i++) {
@@ -159,7 +158,7 @@ public class SimpleChessEngine {
 
     private String findFromSquare(char piece, String san, String targetSquare) {
         int targetFile = targetSquare.charAt(0) - 'a';
-        int targetRank = 8 - (targetSquare.charAt(1) - '0');
+        // int targetRank = 8 - (targetSquare.charAt(1) - '0'); // 未来版本可能需要
 
         // 简化实现：遍历棋盘查找该棋子
         for (int rank = 0; rank < 8; rank++) {

@@ -3,7 +3,6 @@ package org.example.stockfishanalyzer.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.stockfishanalyzer.dto.UserStatisticsDto;
-import org.example.stockfishanalyzer.entity.OpeningBook;
 import org.example.stockfishanalyzer.entity.UserStatistics;
 import org.example.stockfishanalyzer.repository.AnalysisResultRepository;
 import org.example.stockfishanalyzer.repository.GamePgnRepository;

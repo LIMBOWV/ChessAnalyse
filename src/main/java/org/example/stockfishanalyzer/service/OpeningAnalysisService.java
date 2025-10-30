@@ -4,8 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.stockfishanalyzer.dto.OpeningListResponse;
 import org.example.stockfishanalyzer.dto.OpeningStatsDto;
-import org.example.stockfishanalyzer.repository.AnalysisResultRepository;
-import org.example.stockfishanalyzer.repository.GamePgnRepository;
+// TODO: 未来版本可能需要
+// import org.example.stockfishanalyzer.repository.AnalysisResultRepository;
+// import org.example.stockfishanalyzer.repository.GamePgnRepository;
 import org.example.stockfishanalyzer.repository.OpeningBookRepository;
 import org.springframework.stereotype.Service;
 
@@ -24,9 +25,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OpeningAnalysisService {
 
-    private final GamePgnRepository gamePgnRepository;
+    // TODO: 未来版本可能需要直接查询GamePgn表进行开局关联
+    // private final GamePgnRepository gamePgnRepository;
     private final OpeningBookRepository openingBookRepository;
-    private final AnalysisResultRepository analysisResultRepository;
+    // TODO: 未来版本可能需要分析结果辅助开局统计
+    // private final AnalysisResultRepository analysisResultRepository;
 
     /**
      * 获取用户的开局统计
@@ -91,8 +94,9 @@ public class OpeningAnalysisService {
     }
 
     /**
-     * 计算百分比
+     * 计算百分比 (保留,未来可能用于详细统计)
      */
+    @SuppressWarnings("unused")
     private BigDecimal calculateRate(int count, int total) {
         if (total == 0) return BigDecimal.ZERO;
         return BigDecimal.valueOf(count * 100.0 / total).setScale(2, RoundingMode.HALF_UP);
